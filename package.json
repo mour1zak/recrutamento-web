@@ -11,7 +11,8 @@
     "format": "prettier --write \"src/**/*.{ts,html,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,css}\"",
     "typecheck": "tsc --noEmit -p tsconfig.app.json",
-    "start:local": "ng serve --configuration local"
+    "start:local": "ng serve --configuration local",
+    "prestart:local": "node scripts/ensure-local-env.mjs"
   },
   "private": true,
   "packageManager": "npm@10.8.2",
