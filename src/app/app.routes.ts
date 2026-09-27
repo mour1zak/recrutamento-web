@@ -41,11 +41,12 @@ export const routes: Routes = [
       },
 
       // ------------------------------------------------------------------
-      // Vagas (vitrine + detalhe) — conteúdo liberado após o login
+      // Vagas (vitrine + detalhe): PÚBLICAS, como no backend (GET /jobs exige
+      // só x-api-key). Candidatar-se, candidaturas e painéis continuam
+      // protegidos — é o padrão do mercado: ver vagas é grátis, agir exige conta.
       // ------------------------------------------------------------------
       {
         path: 'jobs',
-        canActivate: [authGuard],
         loadChildren: () => import('./features/jobs/jobs.routes').then((m) => m.JOBS_ROUTES),
       },
 

@@ -10,6 +10,8 @@ interface NavItem {
   adminLabel?: string;
   /** Só aparece se o usuário logado tiver este papel. */
   roles: string[];
+  /** Visível também para visitantes (conteúdo público do produto). */
+  public?: boolean;
   end?: boolean;
 }
 
@@ -22,7 +24,7 @@ interface NavItem {
  * após entrar (mesma lógica de portal do Glassdoor).
  */
 const NAV_ITEMS: NavItem[] = [
-  { path: '/jobs', label: 'Vagas', roles: ['CANDIDATE', 'RECRUITER', 'ADMIN'] },
+  { path: '/jobs', label: 'Vagas', roles: ['CANDIDATE', 'RECRUITER', 'ADMIN'], public: true },
   { path: '/candidate/applications', label: 'Minhas candidaturas', roles: ['CANDIDATE'] },
   { path: '/candidate/profile', label: 'Meu perfil', roles: ['CANDIDATE'] },
   { path: '/recruiter', label: 'Painel', roles: ['RECRUITER'] },
@@ -238,8 +240,8 @@ export class HeaderComponent {
 
   protected readonly visibleItems = computed(() => {
     const role = this.auth.role();
-    if (!role) return [];
-    return NAV_ITEMS.filter((item) => item.roles.includes(role)).map((item) => ({
+    const items = role ? NAV_ITEMS.filter((item) => item.roles.includes(role)) : NAV_ITEMS.filter((item) => item.public);
+    return items.map((item) => ({
       path: item.path,
       label: role === 'ADMIN' && item.adminLabel ? item.adminLabel : item.label,
       end: item.end ?? false,

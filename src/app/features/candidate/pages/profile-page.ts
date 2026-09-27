@@ -18,7 +18,6 @@ import {
 } from '../../../core/services/documents.service';
 import { ToastService } from '../../../core/toast.service';
 import { CepFieldComponent, CepFieldState } from '../../../shared/forms/cep-field';
-import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog';
 
 /** Object URL local + versão "confiável" para o sanitizer do Angular. */
 interface PreviewState {
@@ -46,7 +45,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
 @Component({
   selector: 'app-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, AlertComponent, CepFieldComponent, ConfirmDialogComponent, EmptyStateComponent, LoadingComponent],
+  imports: [ReactiveFormsModule, AlertComponent, CepFieldComponent, EmptyStateComponent, LoadingComponent],
   template: `
     <div class="container page container--narrow">
       <div class="page-header">
@@ -318,14 +317,6 @@ import { LoadingComponent } from '../../../shared/ui/loading';
                               <button type="button" class="btn btn--sm" (click)="view(document)">Ver</button>
                             }
                             <button type="button" class="btn btn--sm" (click)="download(document)">Baixar</button>
-                            <button
-                              type="button"
-                              class="btn btn--sm btn--outline-danger"
-                              (click)="askDelete(document)"
-                              [disabled]="deletingId() === document.id"
-                            >
-                              Excluir
-                            </button>
                           </div>
                         </td>
                       </tr>
@@ -344,17 +335,6 @@ import { LoadingComponent } from '../../../shared/ui/loading';
         </div>
       }
 
-      @if (deleteTarget(); as document) {
-        <app-confirm-dialog
-          title="Excluir documento"
-          [message]="deleteMessage(document)"
-          confirmLabel="Excluir"
-          tone="danger"
-          [busy]="deletingId() === document.id"
-          (confirmed)="confirmDelete(document)"
-          (cancelled)="deleteTarget.set(null)"
-        />
-      }
     </div>
   `,
   styles: [
@@ -440,8 +420,6 @@ export class ProfilePageComponent {
   protected readonly uploadError = signal<string | null>(null);
   protected readonly uploadErrorDetail = signal<string | null>(null);
   protected readonly uploadSuccess = signal<string | null>(null);
-  protected readonly deleteTarget = signal<DocumentSummary | null>(null);
-  protected readonly deletingId = signal<number | null>(null);
   protected readonly uploadType = signal<DocumentType>('RESUME');
 
   protected readonly form = inject(NonNullableFormBuilder).group({
@@ -726,33 +704,6 @@ export class ProfilePageComponent {
       });
   }
 
-  protected askDelete(document: DocumentSummary): void {
-    this.deleteTarget.set(document);
-  }
-
-  protected deleteMessage(document: DocumentSummary): string {
-    return `Excluir "${document.originalName}"? Se ele estiver anexado a uma candidatura, o anexo é desvinculado.`;
-  }
-
-  protected confirmDelete(document: DocumentSummary): void {
-    this.deletingId.set(document.id);
-    this.documentsService
-      .remove(document.id)
-      .pipe(take(1))
-      .subscribe({
-        next: () => {
-          this.deletingId.set(null);
-          this.deleteTarget.set(null);
-          this.documents.update((current) => current.filter((item) => item.id !== document.id));
-          this.toasts.success('Documento excluído.');
-        },
-        error: (error: ApiError) => {
-          this.deletingId.set(null);
-          this.deleteTarget.set(null);
-          this.toasts.error(error.message, error.reason === 'rota_inexistente_na_api' ? 'Recurso previsto para uma próxima versão da API.' : undefined);
-        },
-      });
-  }
 
   /** Abre o PDF enviado no navegador (blob autenticado → nova aba). */
   protected view(document: DocumentSummary): void {

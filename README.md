@@ -158,10 +158,12 @@ src/
 - **Um interceptor** para headers (não repetição em cada serviço).
 - **Guards por papel + permission key**: a UI não oferece a ação que o backend
   responderia com `403` (pedido explícito do briefing).
-- **Gate de conteúdo estilo portal**: a raiz (`/`) é uma landing pública com os
-  caminhos de entrada; o conteúdo real (`/jobs`, áreas) exige sessão — mesma
-  lógica de produto do Glassdoor ("explorar vagas exige conta"). O rodapé fala a
-  língua do cliente final: nada de "frontend consumindo a API X".
+- **Entrada estilo portal, vitrine pública**: a raiz (`/`) é uma landing com a
+  proposta do produto; a **vitrine de vagas é pública** (espelhando o contrato do
+  backend, onde `GET /jobs` exige só `x-api-key`) — ver vagas é grátis, como no
+  Glassdoor/Indeed. **Agir** é que exige sessão: candidatar-se, candidaturas,
+  painéis e administração continuam atrás do login. O rodapé fala a língua do
+  cliente final: nada de "frontend consumindo a API X".
 - **Navegação por papel no header**: cada perfil vê o próprio menu; para o ADMIN
   a tela de vagas se chama "Todas as vagas" (porque para ele é isso mesmo).
 - **Tabelas de transição espelhadas no backend** (`JOB_STATUS_TRANSITIONS`,
@@ -230,7 +232,7 @@ Todas as rotas de negócio viram tela; as 2 exceções são mecanismo técnico.
 | `PATCH /companies/:id/deactivate` / `reactivate` | lista de empresas (com diálogo de confirmação) |
 | `GET /companies/:id/stats` | `/recruiter` (cards + funil) e `/recruiter/stats` (ADMIN escolhe a empresa) |
 | `POST /jobs` | `/recruiter/jobs/new` (ADMIN escolhe a empresa) |
-| `GET /jobs` | `/jobs` — vitrine com busca, paginação e ordenação (sessão exigida pelo gate de produto; a rota do backend segue pública só com API key) |
+| `GET /jobs` | `/jobs` — vitrine **pública** com busca, paginação e ordenação (mesmo contrato do backend: só `x-api-key`) |
 | `GET /jobs/mine` | `/recruiter/jobs` |
 | `GET /jobs/:id` | `/jobs/:id` (autenticado) e `/recruiter/jobs/:jobId` |
 | `PATCH /jobs/:id` | `/recruiter/jobs/:jobId/edit` |
@@ -285,7 +287,8 @@ vaga) passam por diálogo de confirmação explicando a consequência.
 
 Sequência testada de ponta a ponta (e coberta por testes automatizados):
 
-0. **Landing** — `/` mostra a proposta do produto; os CTAs levam a login/cadastro.
+0. **Landing** — `/` mostra a proposta do produto; os CTAs levam a login/cadastro
+   e há um caminho público para a vitrine ("Ver vagas abertas").
 1. **Candidato** — `/auth/register`: crie uma conta (validação de senha ≥ 8,
    confirmação, 409 se o email já existe). O cadastro já entra logado e leva ao
    perfil: preencha título/resumo/telefone, digite o **CEP** (autopreenche o
@@ -401,12 +404,12 @@ assets hashados saem com o MIME correto.
 
 Priorizado como "camada final" no briefing — nada aqui bloqueia o fluxo real:
 
-- **Excluir/substituir documento**: a UI já chama `DELETE /documents/:id` com
-  confirmação e trata a ausência da rota como mensagem de produto ("esta
-  operação ainda não existe na API"). Falta a rota no backend — especificação
-  sugerida: `DELETE /documents/:id`, permission `document:delete:own`, escopo
-  `ownerId === @CurrentUser().id`, `SetNull` em `Application.resumeDocumentId`
-  (já modelado no schema). Quando existir, a tela funciona sem alteração.
+- **Excluir/substituir documento**: intencionalmente **fora do front** — o
+  backend não tem rota de exclusão/substituição, e o princípio deste projeto é
+  que o front só oferece operações que a API possui. Se a rota nascer
+  (`DELETE /documents/:id`, permission `document:delete:own`, escopo
+  `ownerId === @CurrentUser().id`, `SetNull` em `Application.resumeDocumentId`,
+  que o schema já prevê), a tela de documentos é o lugar natural para o botão.
 - Testes de componente para `/candidate/profile` (upload de documento) e
   `/candidate/applications/:id` (desistência) — o contrato HTTP deles já está
   coberto em `services.spec.ts`.

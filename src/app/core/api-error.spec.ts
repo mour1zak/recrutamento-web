@@ -164,14 +164,6 @@ describe('translateApiError — mapa de erros da UI', () => {
     expect(error.message).toContain('localhost:3000');
   });
 
-  it('rota inexistente no backend ("Cannot DELETE /x") vira mensagem de produto', () => {
-    const error = translateApiError(
-      httpError(404, { statusCode: 404, error: 'Not Found', message: 'Cannot DELETE /documents/1' }),
-    );
-    expect(error.reason).toBe('rota_inexistente_na_api');
-    expect(error.message).toContain('ainda não existe na API');
-  });
-
   it('500 em upload orienta verificar o backend', () => {
     const error = translateApiError(httpError(500, { statusCode: 500, error: 'Internal Server Error' }));
     expect(error.message).toContain('UPLOAD_DIR');

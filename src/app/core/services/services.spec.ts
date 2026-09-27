@@ -334,21 +334,6 @@ describe('Services → contrato HTTP com o backend', () => {
       request.flush(new Blob(['pdf']));
     });
 
-    it('DELETE /documents/:id é chamado para excluir (rota ainda inexistente no backend)', () => {
-      let captured: ApiError[] = [];
-      TestBed.inject(DocumentsService).remove(12).subscribe({ error: (error: ApiError) => captured.push(error) });
-
-      const request = controller.expectOne(url('documents/12'));
-      expect(request.request.method).toBe('DELETE');
-      expect(request.request.headers.get('Authorization')).toBe('Bearer token');
-      request.flush(
-        { statusCode: 404, error: 'Not Found', message: 'Cannot DELETE /documents/12' },
-        { status: 404, statusText: 'Not Found' },
-      );
-
-      expect(captured[0]?.reason).toBe('rota_inexistente_na_api');
-    });
-
     it('valida MIME e tamanho antes do envio (mesmas regras do backend)', () => {
       const pdf = new File(['x'], 'a.pdf', { type: 'application/pdf' });
       expect(validateUpload(pdf).ok).toBe(true);

@@ -33,11 +33,12 @@ import { RouterLink } from '@angular/router';
           <div class="hero__actions">
             <a class="btn btn--primary btn--lg" routerLink="/auth/register">Criar conta gratuita</a>
             <a class="btn btn--lg" routerLink="/auth/login">Já tenho conta</a>
+            <a class="btn btn--ghost btn--lg" routerLink="/jobs">Ver vagas abertas</a>
           </div>
 
           <p class="hero__note">
-            Para explorar as vagas abertas, acompanhe suas candidaturas e veja os painéis da empresa, entre ou crie a
-            sua conta — leva menos de um minuto.
+            As vagas abertas são públicas. Para se candidatar, acompanhar processos e ver os painéis da empresa, entre
+            ou crie a sua conta — leva menos de um minuto.
           </p>
         </div>
 

@@ -101,7 +101,6 @@ const STATUS_FALLBACK: Record<number, string> = {
   500: 'O servidor falhou ao processar a requisição. Em uploads, confira UPLOAD_DIR e permissões no backend.',
   502: 'Serviço externo indisponível no momento. Tente novamente em instantes.',
   503: 'Serviço temporariamente indisponível. Tente novamente em instantes.',
-  405: 'Esta operação ainda não está disponível na API.',
 };
 
 function rawMessage(body: ApiErrorBody | null | undefined): string | undefined {
@@ -131,20 +130,6 @@ export function translateApiError(error: unknown): ApiError {
       return { status, reason, message: translated, detail: rawMessage(body), fieldErrors };
     }
 
-    // Rota inexistente no backend (Nest responde "Cannot DELETE /x"): mensagem
-    // de produto, não o texto cru do framework — usado por funcionalidades cujo
-    // endpoint ainda não foi implementado na API (ex.: excluir documento).
-    const raw = rawMessage(body);
-    if (raw && /^Cannot (GET|POST|PUT|PATCH|DELETE) \//.test(raw)) {
-      return {
-        status,
-        reason: 'rota_inexistente_na_api',
-        message: 'Esta operação ainda não existe na API. A interface está pronta para quando o backend a implementar.',
-        detail: raw,
-        fieldErrors,
-      };
-    }
-
     const fromBackend = rawMessage(body);
 
     // 401 que chegou até o componente significa que a renovação automática já
@@ -156,6 +141,7 @@ export function translateApiError(error: unknown): ApiError {
 
     // Sem `reason` conhecido: usa a mensagem do backend quando ela é legível
     // (o backend já responde em pt-BR) e só então cai no texto genérico.
+    const raw = rawMessage(body);
     const looksHumanReadable =
       !!fromBackend && !Array.isArray(body?.message) && fromBackend.length > 3 && !/^Unknown error$/i.test(fromBackend);
 
