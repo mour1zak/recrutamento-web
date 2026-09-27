@@ -10,7 +10,8 @@
     "test:watch": "ng test --watch",
     "format": "prettier --write \"src/**/*.{ts,html,css}\"",
     "format:check": "prettier --check \"src/**/*.{ts,html,css}\"",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json"
+    "typecheck": "tsc --noEmit -p tsconfig.app.json",
+    "start:local": "ng serve --configuration local"
   },
   "private": true,
   "packageManager": "npm@10.8.2",

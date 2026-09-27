@@ -46,21 +46,25 @@ Siga o README da API (instalação, `prisma migrate dev`, `prisma generate`,
 | RECRUITER | `recrutador@recrutamento.test` (vinculado à "Empresa Seed") |
 | CANDIDATE | `candidato@recrutamento.test` |
 
-### 2.2 Configure a `x-api-key` do front
+### 2.2 Configure a `x-api-key` do front (uma vez só, sem conflito de pull)
 
 O backend exige o header `x-api-key` em **todas** as rotas (inclusive nas
-públicas de auth). Copie o valor do `API_KEY` do `.env` do backend para
-`src/environments/environment.development.ts`:
+públicas de auth). A chave vive em um arquivo **ignorado pelo git**, então os
+`git pull` das atualizações nunca conflitam com ela:
 
-```ts
-export const environment = {
-  production: false,
-  apiUrl: 'http://localhost:3000',
-  apiKey: 'COLE_AQUI_O_API_KEY_DO_SEU_ENV',
-  appName: 'Recruta',
-  demoAccounts: [/* contas do seed, usadas só pelo painel lateral do login */],
-};
+```bash
+cp src/environments/environment.local.example.ts src/environments/environment.local.ts
+# edite environment.local.ts: cole o API_KEY do .env do backend
 ```
+
+E suba com:
+
+```bash
+npm run start:local   # http://localhost:4200 usando environment.local.ts
+```
+
+(`npm start` continua funcionando, com `environment.development.ts` versionado —
+útil para CI/demo; para o seu dia a dia, prefira `start:local`.)
 
 > **Sobre a chave no bundle:** em um SPA qualquer valor embutido é público. A
 > `x-api-key` é uma chave de *aplicação* (camada extra pedida pelo enunciado),
@@ -75,8 +79,15 @@ Também dá para apontar para outra API sem tocar no código versionado: crie
 ### 2.3 Suba o front
 
 ```bash
-npm install
-npm start          # http://localhost:4200
+npm install        # só na primeira vez (ou quando o package-lock mudar)
+npm run start:local
+```
+
+### 2.4 Atualizando o front (git)
+
+```bash
+git pull origin main     # recebe os commits novos
+# npm install SOMENTE se o package.json/package-lock tiver mudado no pull
 ```
 
 Outros comandos:
