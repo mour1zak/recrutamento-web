@@ -155,6 +155,40 @@ describe('Fluxo do candidato — vitrine, detalhe e candidatura', () => {
     expect(textOf(host)).toContain('1 vaga(s) aberta(s) para "nest"');
   });
 
+  it('ordenação "Mais relevantes" ranqueia título que contém a busca', async () => {
+    await render('/jobs');
+    controller.expectOne(url('jobs?page=1&limit=10&sortOrder=desc')).flush({ data: [], page: 1, limit: 10, total: 0 });
+    await settle();
+
+    const searchInput = host.nativeElement.querySelector('input[type="search"]') as HTMLInputElement;
+    searchInput.value = 'nest';
+    (host.nativeElement.querySelector('.hero__search button[type="submit"]') as HTMLButtonElement).click();
+    await settle();
+
+    // descrição menciona "nest" no primeiro item; título só no segundo
+    controller.expectOne(url('jobs?page=1&limit=10&search=nest&sortOrder=desc')).flush({
+      data: [
+        { ...PUBLIC_JOB, id: 1, title: 'Pessoa desenvolvedora', description: 'Usa nest no dia a dia.' },
+        { ...PUBLIC_JOB, id: 2, title: 'Especialista NestJS', description: 'Backend geral.' },
+      ],
+      page: 1,
+      limit: 10,
+      total: 2,
+    });
+    await settle();
+
+    const sortSelect = host.nativeElement.querySelector('.hero__sort select') as HTMLSelectElement;
+    sortSelect.value = 'relevancia';
+    sortSelect.dispatchEvent(new Event('change'));
+    await settle();
+
+    // sem nova chamada: o ranking é de cliente sobre a página atual
+    const titles = [...host.nativeElement.querySelectorAll('.job-card__title')].map((element) =>
+      element.textContent?.trim(),
+    );
+    expect(titles[0]).toBe('Especialista NestJS');
+  });
+
   it('sem vagas abertas a vitrine mostra estado vazio (nunca dado falso)', async () => {
     await render('/jobs');
     controller.expectOne(url('jobs?page=1&limit=10&sortOrder=desc')).flush({ data: [], page: 1, limit: 10, total: 0 });

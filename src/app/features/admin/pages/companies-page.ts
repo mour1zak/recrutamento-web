@@ -105,9 +105,8 @@ import { LoadingComponent } from '../../../shared/ui/loading';
       </div>
 
       <p class="field__hint mt-4">
-        A lista mostra as empresas que o backend permite descobrir por id a partir de vagas e usuários vinculados. Uma
-        empresa sem vagas e sem recrutadores não aparece aqui — abra-a diretamente por
-        <code>/admin/companies/&lt;id&gt;/edit</code>.
+        Empresas recém-criadas aparecem imediatamente; as demais são descobertas pelo backend a partir de vagas e
+        usuários vinculados.
       </p>
     } @else if (!error()) {
       <app-empty-state

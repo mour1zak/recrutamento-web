@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { catchError, of, switchMap, take, tap } from 'rxjs';
@@ -57,9 +57,11 @@ import { JobStatusBadgeComponent } from '../../../shared/ui/status-badges';
       } @else {
         <div class="row row--between mb-4">
           <label class="filters">
-            <span class="field__label" for="jobStatus">Status</span>
-            <select id="jobStatus" class="select" [value]="statusFilter()" (change)="changeStatus($event)">
-              <option value="">Todos</option>
+            <span class="field__label" for="jobStatus">Exibir</span>
+            <select id="jobStatus" class="select" [value]="selectValue()" (change)="changeStatus($event)">
+              <option value="ativas">Ativas (padrão)</option>
+              <option value="todas">Todas, inclusive canceladas</option>
+              <option disabled>— por status —</option>
               @for (status of statuses; track status) {
                 <option [value]="status">{{ label(status) }}</option>
               }
@@ -76,7 +78,20 @@ import { JobStatusBadgeComponent } from '../../../shared/ui/status-badges';
 
         @if (loading()) {
           <app-loading label="Carregando vagas…" />
-        } @else if (result()!.data.length) {
+        } @else if (visibleRows().length > 0 || hiddenCanceled().length > 0) {
+          @if (hiddenCanceled().length > 0) {
+            <div class="alert alert--info mb-4">
+              <span class="alert__icon" aria-hidden="true">i</span>
+              <div class="alert__body">
+                {{ hiddenCanceled().length }} vaga(s) cancelada(s) desta página estão ocultas na visão "Ativas" —
+                cancelamento é o soft-delete do backend: o histórico é preservado, mas não faz parte do dia a dia.
+              </div>
+              <div class="alert__actions">
+                <button type="button" class="btn btn--sm" (click)="showAll()">Ver todas</button>
+              </div>
+            </div>
+          }
+
           <div class="table-wrap">
             <table class="table">
               <thead>
@@ -90,7 +105,7 @@ import { JobStatusBadgeComponent } from '../../../shared/ui/status-badges';
                 </tr>
               </thead>
               <tbody>
-                @for (job of result()!.data; track job.id) {
+                @for (job of visibleRows(); track job.id) {
                   <tr>
                     <td>
                       <a class="cell-title" [routerLink]="['/recruiter/jobs', job.id]">{{ job.title }}</a>
@@ -222,6 +237,25 @@ export class MyJobsPageComponent {
   protected readonly error = signal<string | null>(null);
   protected readonly noCompany = signal(false);
   protected readonly statusFilter = signal<JobStatus | ''>('');
+  /**
+   * Visão padrão esconde canceladas (soft-delete): o dia a dia do recrutador
+   * são as vagas vivas; o histórico continua a um clique ("Todas").
+   */
+  protected readonly viewMode = signal<'ativas' | 'todas'>('ativas');
+
+  protected readonly visibleRows = computed(() => {
+    const rows = this.result()?.data ?? [];
+    if (this.statusFilter() || this.viewMode() === 'todas') return rows;
+    return rows.filter((job) => job.status !== 'CANCELED');
+  });
+
+  protected readonly hiddenCanceled = computed(() => {
+    const rows = this.result()?.data ?? [];
+    if (this.statusFilter() || this.viewMode() === 'todas') return [];
+    return rows.filter((job) => job.status === 'CANCELED');
+  });
+
+  protected readonly selectValue = computed(() => this.statusFilter() || this.viewMode());
 
   protected readonly statusTarget = signal<ScopedJob | null>(null);
   protected readonly changingStatus = signal(false);
@@ -343,11 +377,28 @@ export class MyJobsPageComponent {
     });
   }
 
-  protected changeStatus(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
+  protected showAll(): void {
+    this.viewMode.set('todas');
+    this.statusFilter.set('');
     void this.router.navigate([], {
       relativeTo: this.route,
-      queryParams: { status: value || null, page: null },
+      queryParams: { status: null, page: null },
+      queryParamsHandling: 'merge',
+    });
+  }
+
+  protected changeStatus(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    if (value === 'ativas' || value === 'todas') {
+      this.viewMode.set(value);
+      this.statusFilter.set('');
+    } else {
+      this.statusFilter.set((JOB_STATUS as readonly string[]).includes(value) ? (value as JobStatus) : '');
+      this.viewMode.set('ativas');
+    }
+    void this.router.navigate([], {
+      relativeTo: this.route,
+      queryParams: { status: this.statusFilter() || null, page: null },
       queryParamsHandling: 'merge',
     });
   }

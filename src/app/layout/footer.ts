@@ -1,7 +1,10 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-/** Rodapé simples com os atalhos públicos e a referência ao backend. */
+/**
+ * Rodapé público, com linguagem de produto (o site é apresentado a um cliente
+ * final: nada de termos técnicos como "frontend", "API" ou nome do repositório).
+ */
 @Component({
   selector: 'app-footer',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -9,15 +12,26 @@ import { RouterLink } from '@angular/router';
   template: `
     <footer class="site-footer">
       <div class="container site-footer__inner">
-        <div>
-          <strong>Recruta</strong> — plataforma de recrutamento.
-          <span class="muted">Frontend Angular consumindo a API <code>recrutamento-api</code>.</span>
+        <div class="site-footer__brand">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M4 7h16M4 12h10M4 17h7" stroke-linecap="round" />
+              <circle cx="18.5" cy="16.5" r="3.5" />
+            </svg>
+          </span>
+          <div>
+            <strong>Recruta</strong>
+            <span class="site-footer__tagline">Conectando pessoas e oportunidades.</span>
+          </div>
         </div>
+
         <nav class="site-footer__nav" aria-label="Rodapé">
           <a routerLink="/jobs">Vagas abertas</a>
           <a routerLink="/auth/login">Entrar</a>
           <a routerLink="/auth/register">Criar conta</a>
         </nav>
+
+        <span class="site-footer__copy">© 2026 Recruta. Todos os direitos reservados.</span>
       </div>
     </footer>
   `,
@@ -40,9 +54,45 @@ import { RouterLink } from '@angular/router';
         color: var(--color-text-muted);
       }
 
+      .site-footer__brand {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+      }
+
+      .brand-mark {
+        display: grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        background: var(--color-primary);
+        color: #fff;
+      }
+
+      .site-footer__brand strong {
+        color: var(--color-text);
+        margin-right: 6px;
+      }
+
+      .site-footer__tagline {
+        color: var(--color-text-muted);
+      }
+
       .site-footer__nav {
         display: flex;
         gap: var(--space-4);
+      }
+
+      .site-footer__copy {
+        color: var(--color-text-subtle);
+      }
+
+      @media (max-width: 720px) {
+        .site-footer__inner {
+          flex-direction: column;
+          align-items: flex-start;
+        }
       }
     `,
   ],

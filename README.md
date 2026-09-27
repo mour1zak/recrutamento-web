@@ -24,7 +24,7 @@ fingindo ser conteúdo.
 | Change detection | `provideZonelessChangeDetection()` | Sem Zone.js: menos bundle, updates explícitos por signal |
 | UI | **CSS próprio com design tokens** (sem framework) | Zero dependência externa, funciona offline, tema consistente em `src/styles.css` |
 | Forms | `ReactiveFormsModule` | Validar no cliente as mesmas regras dos DTOs do backend |
-| Testes | **Vitest + jsdom** (via `@angular/build:unit-test`) + `HttpTestingController` | 126 testes cobrindo interceptors, guards, contratos HTTP e os 3 fluxos de negócio |
+| Testes | **Vitest + jsdom** (via `@angular/build:unit-test`) + `HttpTestingController` | 131 testes cobrindo interceptors, guards, contratos HTTP e os 3 fluxos de negócio |
 | Build | `@angular/build:application` | Produz SPA estático; initial **310 kB (87 kB gzip)** |
 
 Requisitos: **Node 20.19+ / 22.12+** e npm. (O backend exige Node 22+; o front
@@ -82,7 +82,7 @@ npm start          # http://localhost:4200
 Outros comandos:
 
 ```bash
-npm test           # 126 testes (vitest + jsdom)
+npm test           # 131 testes (vitest + jsdom)
 npm run test:watch
 npm run build      # build de produção em dist/recrutamento-web/browser
 npm run typecheck  # tsc --noEmit
@@ -147,6 +147,12 @@ src/
 - **Um interceptor** para headers (não repetição em cada serviço).
 - **Guards por papel + permission key**: a UI não oferece a ação que o backend
   responderia com `403` (pedido explícito do briefing).
+- **Gate de conteúdo estilo portal**: a raiz (`/`) é uma landing pública com os
+  caminhos de entrada; o conteúdo real (`/jobs`, áreas) exige sessão — mesma
+  lógica de produto do Glassdoor ("explorar vagas exige conta"). O rodapé fala a
+  língua do cliente final: nada de "frontend consumindo a API X".
+- **Navegação por papel no header**: cada perfil vê o próprio menu; para o ADMIN
+  a tela de vagas se chama "Todas as vagas" (porque para ele é isso mesmo).
 - **Tabelas de transição espelhadas no backend** (`JOB_STATUS_TRANSITIONS`,
   `APPLICATION_STATUS_TRANSITIONS`): os botões de status só mostram destinos
   válidos, então `400 invalid_status_transition` não ocorre por clique.
@@ -209,7 +215,7 @@ Todas as rotas de negócio viram tela; as 2 exceções são mecanismo técnico.
 | `PATCH /companies/:id/deactivate` / `reactivate` | lista de empresas (com diálogo de confirmação) |
 | `GET /companies/:id/stats` | `/recruiter` (cards + funil) e `/recruiter/stats` (ADMIN escolhe a empresa) |
 | `POST /jobs` | `/recruiter/jobs/new` (ADMIN escolhe a empresa) |
-| `GET /jobs` | `/jobs` — vitrine pública com busca, paginação e ordenação |
+| `GET /jobs` | `/jobs` — vitrine com busca, paginação e ordenação (sessão exigida pelo gate de produto; a rota do backend segue pública só com API key) |
 | `GET /jobs/mine` | `/recruiter/jobs` |
 | `GET /jobs/:id` | `/jobs/:id` (autenticado) e `/recruiter/jobs/:jobId` |
 | `PATCH /jobs/:id` | `/recruiter/jobs/:jobId/edit` |
@@ -264,6 +270,7 @@ vaga) passam por diálogo de confirmação explicando a consequência.
 
 Sequência testada de ponta a ponta (e coberta por testes automatizados):
 
+0. **Landing** — `/` mostra a proposta do produto; os CTAs levam a login/cadastro.
 1. **Candidato** — `/auth/register`: crie uma conta (validação de senha ≥ 8,
    confirmação, 409 se o email já existe). O cadastro já entra logado e leva ao
    perfil: preencha título/resumo/telefone, digite o **CEP** (autopreenche o
@@ -326,7 +333,7 @@ preencher (configurável em `environment.demoAccounts` — deixe vazio para sumi
 
 ## 9. Testes
 
-`npm test` → **126 testes** em 8 arquivos:
+`npm test` → **131 testes** em 9 arquivos:
 
 | Arquivo | O que protege |
 |---|---|

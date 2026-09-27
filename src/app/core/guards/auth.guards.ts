@@ -1,6 +1,6 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router } from '@angular/router';
-import { AuthService } from '../auth/auth.service';
+import { AuthService, homePathForRole } from '../auth/auth.service';
 import { PermissionsService, PermissionKey } from '../auth/permissions.service';
 import type { RoleName } from '../models';
 
@@ -59,6 +59,20 @@ export function permissionGuard(permission: PermissionKey): CanActivateFn {
     return router.createUrlTree([auth.homePath()]);
   };
 }
+
+/**
+ * Porta de entrada: visitante vê a landing; quem já tem sessão vai direto
+ * para a home do próprio papel (não faz sentido mostrar vitrine de marketing
+ * para quem já está dentro do produto).
+ */
+export const homeIfAuthedGuard: CanActivateFn = () => {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+  if (auth.isAuthenticated()) {
+    return router.createUrlTree([homePathForRole(auth.role())]);
+  }
+  return true;
+};
 
 export const guestGuard: CanActivateFn = () => {
   const auth = inject(AuthService);

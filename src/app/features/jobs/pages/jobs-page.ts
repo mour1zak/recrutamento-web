@@ -53,9 +53,19 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
           <label class="hero__sort">
             <span>Ordenar</span>
             <select class="select" [value]="sortOrder()" (change)="changeSort($event)">
+              <option value="relevancia" [disabled]="!search()">Mais relevantes</option>
               <option value="desc">Mais recentes</option>
               <option value="asc">Mais antigas</option>
             </select>
+            @if (sortOrder() === 'relevancia') {
+              <span class="hero__sort-hint">
+                @if (search()) {
+                  títulos que contêm a busca vêm primeiro
+                } @else {
+                  busque algo para ranquear por relevância
+                }
+              </span>
+            }
           </label>
           <label class="checkbox">
             <input type="checkbox" [checked]="onlyRemote()" (change)="toggleRemote($event)" />
@@ -175,6 +185,11 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
         font-size: 0.8125rem;
       }
 
+      .hero__sort-hint {
+        font-size: 0.75rem;
+        color: var(--color-text-subtle);
+      }
+
       @media (max-width: 720px) {
         .hero__search {
           flex-direction: column;
@@ -200,14 +215,29 @@ export class JobsPageComponent {
 
   protected readonly search = signal('');
   protected readonly page = signal(1);
-  protected readonly sortOrder = signal<'asc' | 'desc'>('desc');
+  protected readonly sortOrder = signal<'asc' | 'desc' | 'relevancia'>('desc');
   /** Filtro de cliente (o backend não expõe `isRemote` como query). */
   protected readonly onlyRemote = signal(false);
 
-  /** Quando o filtro remoto está ativo, a contagem exibida é a da página. */
+  /**
+   * Linhas exibidas: filtro remoto (cliente) + ranking de relevância.
+   *
+   * "Mais relevantes" é um ranking de página (o backend só ordena por data):
+   * com busca ativa, títulos que contêm o termo vêm antes das descrições que
+   * contêm o termo. Sem busca, equivale a "mais recentes".
+   */
   protected readonly visibleJobs = computed(() => {
-    const data = this.result()?.data ?? [];
-    return this.onlyRemote() ? data.filter((job) => job.isRemote) : data;
+    let data = this.result()?.data ?? [];
+    if (this.onlyRemote()) data = data.filter((job) => job.isRemote);
+    if (this.sortOrder() === 'relevancia' && this.search()) {
+      const term = this.search().toLowerCase();
+      const score = (job: PublicJob) =>
+        (job.title.toLowerCase().includes(term) ? 2 : 0) +
+        (job.company.name.toLowerCase().includes(term) ? 1 : 0) +
+        (job.description.toLowerCase().includes(term) ? 1 : 0);
+      data = [...data].sort((a, b) => score(b) - score(a));
+    }
+    return data;
   });
 
   constructor() {
@@ -218,16 +248,18 @@ export class JobsPageComponent {
           this.search.set(params.get('search') ?? '');
           this.page.set(Number(params.get('page') ?? 1) || 1);
           const order = params.get('sortOrder');
-          this.sortOrder.set(order === 'asc' ? 'asc' : 'desc');
+          this.sortOrder.set(order === 'asc' ? 'asc' : order === 'relevancia' ? 'relevancia' : 'desc');
         }),
-        switchMap(() =>
-          this.jobs.listPublicJobs({
+        switchMap(() => {
+          const order = this.sortOrder();
+          return this.jobs.listPublicJobs({
             search: this.search() || undefined,
             page: this.page(),
             limit: this.pageSize,
-            sortOrder: this.sortOrder(),
-          }),
-        ),
+            // "Mais relevantes" é ranking de cliente; pro backend vai a ordem padrão.
+            sortOrder: order === 'relevancia' ? undefined : order,
+          });
+        }),
         takeUntilDestroyed(),
       )
       .subscribe({
@@ -270,7 +302,8 @@ export class JobsPageComponent {
   }
 
   protected changeSort(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value === 'asc' ? 'asc' : 'desc';
+    const raw = (event.target as HTMLSelectElement).value;
+    const value = raw === 'asc' ? 'asc' : raw === 'relevancia' ? 'relevancia' : 'desc';
     void this.router.navigate([], {
       relativeTo: this.route,
       queryParams: { sortOrder: value, page: null },

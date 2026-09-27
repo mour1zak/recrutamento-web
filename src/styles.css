@@ -698,6 +698,20 @@ kbd {
   background: #fbfbfe;
 }
 
+.table tr.row--flash td {
+  background: var(--color-primary-soft);
+  animation: row-flash 2.4s ease-out both;
+}
+
+@keyframes row-flash {
+  0% {
+    background: var(--color-primary-soft);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
 .table td.actions {
   text-align: right;
   white-space: nowrap;
@@ -1077,6 +1091,7 @@ kbd {
 }
 
 .funnel__bar {
+  display: block;
   height: 10px;
   background: var(--color-surface-alt);
   border-radius: var(--radius-pill);
@@ -1084,10 +1099,21 @@ kbd {
 }
 
 .funnel__fill {
+  display: block;
   height: 100%;
   background: linear-gradient(90deg, var(--color-primary), #7c74f0);
   border-radius: var(--radius-pill);
+  transform-origin: left center;
+  animation: funnel-grow 700ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
   transition: width 400ms ease;
+}
+
+/* Preenchido x vazio precisa ser óbvio à primeira vista: a barra cheia
+   "cresce" quando entra na tela; contagem zero deixa só o trilho cinza. */
+@keyframes funnel-grow {
+  from {
+    transform: scaleX(0);
+  }
 }
 
 .funnel__count {

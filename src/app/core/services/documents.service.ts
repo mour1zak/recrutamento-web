@@ -23,11 +23,17 @@ export interface UploadValidation {
 }
 
 /** Valida no cliente antes de gastar o upload — mesmas regras do backend. */
+const ACCEPTED_EXTENSIONS = /\.(pdf|doc|docx)$/i;
+
 export function validateUpload(file: File | null | undefined): UploadValidation {
   if (!file) {
     return { ok: false, reason: 'arquivo_ausente', message: 'Selecione um arquivo para enviar.' };
   }
-  if (!ACCEPTED_MIME_TYPES.includes(file.type as (typeof ACCEPTED_MIME_TYPES)[number])) {
+  const knownType = ACCEPTED_MIME_TYPES.includes(file.type as (typeof ACCEPTED_MIME_TYPES)[number]);
+  // Alguns sistemas/browsers não preenchem `File.type` (ex.: .doc em certos
+  // Linux). Nesses casos a extensão salva o candidato de um falso negativo no
+  // cliente — o backend continua sendo a autoridade (multer valida o MIME).
+  if (!knownType && !(file.type === '' && ACCEPTED_EXTENSIONS.test(file.name))) {
     return {
       ok: false,
       reason: 'mime_type_invalido',
@@ -76,6 +82,30 @@ export class DocumentsService {
       }),
     );
   }
+
+  /**
+   * Busca o binário SEM disparar download — para pré-visualizar no navegador
+   * (o "ver o que eu enviei" estilo Glassdoor).
+   */
+  fetch(id: number, fallbackFilename = `documento-${id}`): Observable<FileDownload> {
+    return this.api.download(`documents/${id}`, fallbackFilename);
+  }
+}
+
+/**
+ * Abre um blob em nova aba (preview de PDF enviado). O revoke é adiado porque
+ * a aba nova precisa conseguir ler o object URL depois do clique.
+ */
+export function openBlobInNewTab(blob: Blob): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement('a');
+  anchor.href = url;
+  anchor.target = '_blank';
+  anchor.rel = 'noopener';
+  document.body.appendChild(anchor);
+  anchor.click();
+  document.body.removeChild(anchor);
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }
 
 /** Cria um link temporário e clica — padrão para download de blob autenticado. */

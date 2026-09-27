@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { DomSanitizer } from '@angular/platform-browser';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { catchError, materialize, of, take } from 'rxjs';
@@ -12,10 +13,17 @@ import {
   ACCEPT_ATTRIBUTE,
   DocumentsService,
   MAX_UPLOAD_BYTES,
+  openBlobInNewTab,
   validateUpload,
 } from '../../../core/services/documents.service';
 import { ToastService } from '../../../core/toast.service';
 import { CepFieldComponent, CepFieldState } from '../../../shared/forms/cep-field';
+
+/** Object URL local + versão "confiável" para o sanitizer do Angular. */
+interface PreviewState {
+  raw: string;
+  trusted: ReturnType<DomSanitizer['bypassSecurityTrustResourceUrl']>;
+}
 import { AlertComponent } from '../../../shared/ui/alert';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state';
 import { LoadingComponent } from '../../../shared/ui/loading';
@@ -233,6 +241,33 @@ import { LoadingComponent } from '../../../shared/ui/loading';
                 </span>
               </div>
 
+              @if (selectedFile(); as file) {
+                <div class="doc-preview">
+                  <div class="row row--between">
+                    <div class="doc-preview__meta">
+                      <span class="doc-preview__icon" aria-hidden="true">{{ file.type === 'application/pdf' ? '📄' : '📃' }}</span>
+                      <div>
+                        <div class="strong">{{ file.name }}</div>
+                        <div class="cell-sub">{{ size(file.size) }} · {{ file.type || 'tipo não informado' }}</div>
+                      </div>
+                    </div>
+                    <button type="button" class="btn btn--sm btn--ghost" (click)="clearSelectedFile()">Remover</button>
+                  </div>
+                  @if (previewUrl(); as preview) {
+                    <iframe
+                      class="doc-preview__frame"
+                      [src]="preview.trusted"
+                      title="Pré-visualização do arquivo selecionado"
+                    ></iframe>
+                    <span class="field__hint">Pré-visualização local (o arquivo ainda não foi enviado).</span>
+                  } @else {
+                    <span class="field__hint">
+                      A pré-visualização no navegador existe para PDF; DOC/DOCX você confere após enviar, em "Baixar"/"Ver".
+                    </span>
+                  }
+                </div>
+              }
+
               <button type="submit" class="btn btn--primary" [disabled]="uploading() || !selectedFile()">
                 @if (uploading()) {
                   <span class="spinner" aria-hidden="true"></span>
@@ -265,13 +300,18 @@ import { LoadingComponent } from '../../../shared/ui/loading';
                   </thead>
                   <tbody>
                     @for (document of documents(); track document.id) {
-                      <tr>
+                      <tr [class.row--flash]="document.id === lastUploadedId()">
                         <td class="cell-title truncate">{{ document.originalName }}</td>
                         <td>{{ typeLabel(document.type) }}</td>
                         <td class="nowrap">{{ size(document.sizeBytes) }}</td>
                         <td class="nowrap">{{ date(document.createdAt) }}</td>
                         <td class="actions">
-                          <button type="button" class="btn btn--sm" (click)="download(document)">Baixar</button>
+                          <div class="btn-group" style="justify-content: flex-end">
+                            @if (document.mimeType === 'application/pdf') {
+                              <button type="button" class="btn btn--sm" (click)="view(document)">Ver</button>
+                            }
+                            <button type="button" class="btn btn--sm" (click)="download(document)">Baixar</button>
+                          </div>
                         </td>
                       </tr>
                     }
@@ -299,6 +339,36 @@ import { LoadingComponent } from '../../../shared/ui/loading';
         align-items: end;
       }
 
+      .doc-preview {
+        grid-column: 1 / -1;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius);
+        padding: var(--space-3) var(--space-4);
+        background: var(--color-surface-alt);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+      }
+
+      .doc-preview__meta {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        min-width: 0;
+      }
+
+      .doc-preview__icon {
+        font-size: 1.4rem;
+      }
+
+      .doc-preview__frame {
+        width: 100%;
+        height: 260px;
+        border: 1px solid var(--color-border);
+        border-radius: var(--radius-sm);
+        background: #fff;
+      }
+
       @media (max-width: 720px) {
         .upload {
           grid-template-columns: minmax(0, 1fr);
@@ -314,6 +384,7 @@ export class ProfilePageComponent {
   private readonly route = inject(ActivatedRoute);
 
   protected readonly auth = inject(AuthService);
+  private readonly sanitizer = inject(DomSanitizer);
 
   protected readonly documentTypes = DOCUMENT_TYPE;
   protected readonly acceptAttribute = ACCEPT_ATTRIBUTE;
@@ -336,6 +407,8 @@ export class ProfilePageComponent {
   protected readonly documents = signal<DocumentSummary[]>([]);
   protected readonly documentsLoading = signal(true);
   protected readonly selectedFile = signal<File | null>(null);
+  protected readonly previewUrl = signal<PreviewState | null>(null);
+  protected readonly lastUploadedId = signal<number | null>(null);
   protected readonly uploading = signal(false);
   protected readonly uploadError = signal<string | null>(null);
   protected readonly uploadType = signal<DocumentType>('RESUME');
@@ -366,6 +439,10 @@ export class ProfilePageComponent {
       .getMine()
       .pipe(take(1), materialize())
       .subscribe((notification) => {
+        // `materialize` também emite a notificação de COMPLETE ao final do
+        // fluxo: sem ignorá-la, um carregamento BEM-SUCEDIDO terminaria no
+        // ramo de erro e mostraria "não foi possível carregar" à toa.
+        if (notification.kind === 'C') return;
         this.loading.set(false);
 
         if (notification.kind === 'N' && notification.value) {
@@ -539,8 +616,14 @@ export class ProfilePageComponent {
     const input = event.target as HTMLInputElement;
     const file = input.files?.[0] ?? null;
     this.uploadError.set(null);
+    if (!file) {
+      this.releasePreview();
+      this.selectedFile.set(null);
+      return;
+    }
 
     const validation = validateUpload(file);
+    this.releasePreview();
     if (!validation.ok) {
       this.selectedFile.set(null);
       this.uploadError.set(validation.message ?? 'Arquivo inválido.');
@@ -548,6 +631,29 @@ export class ProfilePageComponent {
       return;
     }
     this.selectedFile.set(file);
+    // Preview 100% local (object URL): o candidato vê o que vai enviar antes
+    // de gastar o upload — e o PDF abre embutido, como nas plataformas do mercado.
+    if (file.type === 'application/pdf') {
+      const raw = URL.createObjectURL(file);
+      // iframe[src] é ResourceURL: o sanitizador do Angular não aceita blob:
+      // por padrão, e aqui a origem é 100% local (arquivo que o usuário acabou
+      // de escolher), então o bypass é seguro e documentado.
+      this.previewUrl.set({ raw, trusted: this.sanitizer.bypassSecurityTrustResourceUrl(raw) });
+    }
+  }
+
+  protected clearSelectedFile(): void {
+    this.releasePreview();
+    this.selectedFile.set(null);
+    this.uploadError.set(null);
+    const input = document.getElementById('documentFile') as HTMLInputElement | null;
+    if (input) input.value = '';
+  }
+
+  private releasePreview(): void {
+    const current = this.previewUrl();
+    if (current) URL.revokeObjectURL(current.raw);
+    this.previewUrl.set(null);
   }
 
   protected upload(event: Event): void {
@@ -568,18 +674,36 @@ export class ProfilePageComponent {
       .upload(file, this.uploadType())
       .pipe(take(1))
       .subscribe({
-        next: () => {
+        next: (uploaded) => {
           this.uploading.set(false);
+          this.lastUploadedId.set(uploaded.id);
+          this.releasePreview();
           this.selectedFile.set(null);
-          this.toasts.success('Documento enviado.');
+          this.toasts.success('Documento enviado.', 'Ele já aparece na lista abaixo, pronto para ser anexado.');
           this.loadDocuments();
           const input = document.getElementById('documentFile') as HTMLInputElement | null;
           if (input) input.value = '';
         },
         error: (error: ApiError) => {
+          // Em erro o arquivo CONTINUA selecionado: o candidato corrige e
+          // tenta de novo sem precisar repescar o arquivo.
           this.uploading.set(false);
           this.uploadError.set(error.message);
         },
+      });
+  }
+
+  /** Abre o PDF enviado no navegador (blob autenticado → nova aba). */
+  protected view(document: DocumentSummary): void {
+    this.documentsService
+      .fetch(document.id, document.originalName)
+      .pipe(take(1))
+      .subscribe({
+        next: (result) => {
+          openBlobInNewTab(result.blob);
+          this.toasts.info('Abrindo o documento em uma nova aba.');
+        },
+        error: (error: ApiError) => this.toasts.error(error.message),
       });
   }
 

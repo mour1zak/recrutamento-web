@@ -313,7 +313,9 @@ export class CompanyFormPageComponent {
         this.saving.set(false);
         this.company.set(company);
         this.companyId.set(company.id);
-        this.directory.invalidate(company.id);
+        // Entra já no cache/lista da sessão: aparece no seletor de empresa do
+        // formulário de vaga e na lista do admin sem precisar recarregar nada.
+        this.directory.register(company);
         this.addressPreview.set(this.previewFrom(company));
 
         this.addressWarningSignal.set(company.addressWarning ?? null);

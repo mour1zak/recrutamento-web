@@ -83,12 +83,12 @@ import { CandidateCardComponent } from '../components/candidate-card';
               @if (canChangeStatus()) {
                 <select
                   class="select select--sm"
-                  [value]="job.status"
-                  (change)="onStatusChange($event, job)"
+                  #jobStatusSelect
+                  (change)="onStatusChange($event, job, jobStatusSelect)"
                   aria-label="Mudar status da vaga"
                   [disabled]="changingJobStatus()"
                 >
-                  <option [value]="job.status" disabled>Mudar status…</option>
+                  <option value="" disabled selected>Mudar status…</option>
                   @for (status of transitions(job.status); track status) {
                     <option [value]="status">{{ statusLabel(status) }}</option>
                   }
@@ -429,10 +429,12 @@ export class JobApplicationsPageComponent {
     return this.jobsService.allowedTransitions(status);
   }
 
-  protected onStatusChange(event: Event, job: ScopedJob): void {
-    const select = event.target as HTMLSelectElement;
+  protected onStatusChange(event: Event, job: ScopedJob, select: HTMLSelectElement): void {
     const status = select.value as JobStatus;
-    if (!status || status === job.status) return;
+    if (!status || status === job.status) {
+      select.value = '';
+      return;
+    }
 
     this.changingJobStatus.set(true);
     this.jobError.set(null);
@@ -444,12 +446,13 @@ export class JobApplicationsPageComponent {
         next: (updated) => {
           this.changingJobStatus.set(false);
           this.job.set(updated);
+          select.value = '';
           this.toasts.success(`Vaga movida para "${this.statusLabel(updated.status)}".`);
         },
         error: (apiError: ApiError) => {
           this.changingJobStatus.set(false);
           this.jobError.set(apiError.message);
-          select.value = job.status;
+          select.value = '';
         },
       });
   }
@@ -474,6 +477,8 @@ export class JobApplicationsPageComponent {
       })
       .pipe(take(1), materialize())
       .subscribe((notification) => {
+        // COMPLETE não é erro (ver comentário equivalente no profile).
+        if (notification.kind === 'C') return;
         this.applicationsLoading.set(false);
 
         if (notification.kind !== 'N' || !notification.value) {

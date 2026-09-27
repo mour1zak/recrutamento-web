@@ -1,26 +1,14 @@
-import { inject } from '@angular/core';
-import { CanActivateFn, Router, Routes } from '@angular/router';
-import { authGuard, guestGuard, permissionGuard, roleGuard } from './core/guards/auth.guards';
+import { Routes } from '@angular/router';
+import { authGuard, guestGuard, homeIfAuthedGuard, permissionGuard, roleGuard } from './core/guards/auth.guards';
 import { PERMISSIONS } from './core/auth/permissions.service';
-import { AuthService, homePathForRole } from './core/auth/auth.service';
 import { ShellComponent } from './layout/shell';
-
-/**
- * Raiz do site: visitante cai na vitrine pública; usuário logado vai direto
- * para a home do próprio papel (candidato → vagas, recrutador → painel,
- * admin → administração).
- */
-const rootRedirect: CanActivateFn = () => {
-  const auth = inject(AuthService);
-  const router = inject(Router);
-  return router.createUrlTree([auth.isAuthenticated() ? homePathForRole(auth.role()) : '/jobs']);
-};
 
 /**
  * Rotas por feature (lazy) — auth, jobs, candidate, recruiter, admin.
  *
  * Convenções:
- * - rotas públicas: `/`, `/jobs`, `/jobs/:id`, `/auth/*`;
+ * - rotas públicas: `/` (landing) e `/auth/*`; o conteúdo (`/jobs`, áreas)
+ *   exige sessão — decisão de produto estilo portal (ver briefing de UX);
  * - área do candidato: `/candidate/*` (guard de papel + permission key);
  * - área do recrutador: `/recruiter/*` (ADMIN também entra — tem `job:read:any`);
  * - administração: `/admin/*` (ADMIN).
@@ -33,7 +21,15 @@ export const routes: Routes = [
     path: '',
     component: ShellComponent,
     children: [
-      { path: '', pathMatch: 'full', canActivate: [rootRedirect], children: [] },
+      // Porta de entrada estilo portal: landing pública; o conteúdo (vitas,
+      // candidaturas, painéis) só depois do login.
+      {
+        path: '',
+        pathMatch: 'full',
+        title: 'Recruta — Plataforma de Recrutamento',
+        canActivate: [homeIfAuthedGuard],
+        loadComponent: () => import('./features/landing/landing-page').then((m) => m.LandingPageComponent),
+      },
 
       // ------------------------------------------------------------------
       // Autenticação (só para visitantes)
@@ -45,10 +41,11 @@ export const routes: Routes = [
       },
 
       // ------------------------------------------------------------------
-      // Vagas (vitrine pública + detalhe)
+      // Vagas (vitrine + detalhe) — conteúdo liberado após o login
       // ------------------------------------------------------------------
       {
         path: 'jobs',
+        canActivate: [authGuard],
         loadChildren: () => import('./features/jobs/jobs.routes').then((m) => m.JOBS_ROUTES),
       },
 

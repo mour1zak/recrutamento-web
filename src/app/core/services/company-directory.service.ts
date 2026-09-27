@@ -17,6 +17,17 @@ export class CompanyDirectoryService {
   private readonly api = inject(ApiClient);
   private readonly cache = signal<Record<number, string>>({});
 
+  /**
+   * Empresas criadas NESTA sessão.
+   *
+   * Motivo: a descoberta por id só enxerga empresas que já têm vagas ou
+   * usuários vinculados — uma empresa recém-criada ainda não tem nenhum dos
+   * dois, então ela sumiria dos seletores ("criei e não aparece no filtro da
+   * vaga"). O registro em sessão fecha esse buraco até o backend expor uma
+   * listagem própria.
+   */
+  private readonly registered = signal<Company[]>([]);
+
   readonly names = this.cache.asReadonly();
 
   name(id: number | null | undefined): string {
@@ -60,6 +71,15 @@ export class CompanyDirectoryService {
    * sem recrutadores vinculados não aparece aqui — mas ela também não tem nada
    * para gerenciar, e o ADMIN pode consultá-la pelo id em `/admin/companies/:id/edit`.
    */
+  /** Registra uma empresa criada/agora conhecida (idempotente por id). */
+  register(company: Company): void {
+    this.registered.update((current) => {
+      const others = current.filter((item) => item.id !== company.id);
+      return [company, ...others];
+    });
+    this.cache.update((current) => ({ ...current, [company.id]: company.name }));
+  }
+
   discoverCompanies(): Observable<Company[]> {
     return forkJoin({
       jobs: this.api

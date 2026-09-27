@@ -423,6 +423,8 @@ describe('Fluxo do recrutador — avaliação de candidaturas', () => {
       expect(text).toContain('Carta de apresentação');
       expect(text).toContain('Tenho 3 anos de experiência');
       expect(text).toContain('Nenhuma entrevista agendada');
+      // Regressão: a notificação de COMPLETE do fluxo não pode virar "erro".
+      expect(text).not.toContain('Não foi possível carregar as candidaturas');
     });
 
     it('payload reduzido (PENDING) avisa que os dados completos aparecem depois', async () => {
@@ -579,6 +581,27 @@ describe('Fluxo do recrutador — avaliação de candidaturas', () => {
       // linha atualizada sem recarregar a lista inteira.
       expect(controller.match(url('jobs/mine?page=1&limit=10'))).toHaveLength(0);
       expect(textOf(host)).toContain('Aberta');
+    });
+
+    it('vagas canceladas ficam ocultas na visão padrão e o aviso oferece "Ver todas"', async () => {
+      const host = await render();
+      controller.expectOne(url('jobs/mine?page=1&limit=10')).flush({
+        data: [SCOPED_JOB, { ...SCOPED_JOB, id: 8, title: 'Vaga cancelada', status: 'CANCELED' }],
+        page: 1,
+        limit: 10,
+        total: 2,
+      });
+      await settle();
+
+      const text = textOf(host);
+      expect(text).toContain('Desenvolvedor(a) Backend Node.js');
+      expect(text).not.toContain('Vaga cancelada');
+      expect(text).toContain('1 vaga(s) cancelada(s) desta página estão ocultas');
+
+      clickButton(host, 'Ver todas');
+      await settle();
+
+      expect(textOf(host)).toContain('Vaga cancelada');
     });
 
     it('409 job_not_fully_filled ao marcar como preenchida sem contratar todo mundo', async () => {

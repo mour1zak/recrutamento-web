@@ -6,18 +6,31 @@ import { roleLabel } from '../core/format';
 interface NavItem {
   path: string;
   label: string;
-  /** Só aparece se o usuário logado tiver este papel (undefined = todos). */
-  roles?: string[];
+  /** Rótulo alternativo quando o papel logado é ADMIN (escopo diferente). */
+  adminLabel?: string;
+  /** Só aparece se o usuário logado tiver este papel. */
+  roles: string[];
   end?: boolean;
 }
 
+/**
+ * Navegação por papel.
+ *
+ * Cada perfil enxerga o próprio menu: o ADMIN nunca vê "Minhas vagas" (para ele
+ * a mesma tela lista as vagas de TODAS as empresas, então o rótulo é
+ * "Todas as vagas"), e o visitante não vê menu nenhum — o conteúdo é liberado
+ * após entrar (mesma lógica de portal do Glassdoor).
+ */
 const NAV_ITEMS: NavItem[] = [
-  { path: '/jobs', label: 'Vagas' },
+  { path: '/jobs', label: 'Vagas', roles: ['CANDIDATE', 'RECRUITER', 'ADMIN'] },
   { path: '/candidate/applications', label: 'Minhas candidaturas', roles: ['CANDIDATE'] },
   { path: '/candidate/profile', label: 'Meu perfil', roles: ['CANDIDATE'] },
   { path: '/recruiter', label: 'Painel', roles: ['RECRUITER'] },
-  { path: '/recruiter/jobs', label: 'Minhas vagas', roles: ['RECRUITER', 'ADMIN'] },
-  { path: '/admin', label: 'Administração', roles: ['ADMIN'] },
+  { path: '/recruiter/jobs', label: 'Minhas vagas', adminLabel: 'Todas as vagas', roles: ['RECRUITER', 'ADMIN'] },
+  { path: '/recruiter/stats', label: 'Indicadores', roles: ['RECRUITER', 'ADMIN'] },
+  { path: '/admin/companies', label: 'Empresas', roles: ['ADMIN'] },
+  { path: '/admin/users', label: 'Usuários', roles: ['ADMIN'] },
+  { path: '/admin/roles', label: 'Papéis e permissões', roles: ['ADMIN'] },
 ];
 
 /**
@@ -225,7 +238,12 @@ export class HeaderComponent {
 
   protected readonly visibleItems = computed(() => {
     const role = this.auth.role();
-    return NAV_ITEMS.filter((item) => !item.roles || (role !== null && item.roles.includes(role)));
+    if (!role) return [];
+    return NAV_ITEMS.filter((item) => item.roles.includes(role)).map((item) => ({
+      path: item.path,
+      label: role === 'ADMIN' && item.adminLabel ? item.adminLabel : item.label,
+      end: item.end ?? false,
+    }));
   });
 
   protected logout(): void {

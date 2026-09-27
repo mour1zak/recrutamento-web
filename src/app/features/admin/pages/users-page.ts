@@ -138,7 +138,13 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
                 <td class="nowrap">{{ date(user.createdAt) }}</td>
                 <td class="actions">
                   <div class="btn-group" style="justify-content: flex-end">
-                    <button type="button" class="btn btn--sm" (click)="openRole(user)" [disabled]="busy()">
+                    <button
+                      type="button"
+                      class="btn btn--sm"
+                      (click)="openRole(user)"
+                      [disabled]="busy() || rolesUnavailable()"
+                      [title]="rolesUnavailable() ? 'Não foi possível carregar os papéis do sistema' : null"
+                    >
                       Papel
                     </button>
                     <button
@@ -207,6 +213,13 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
     @if (roleTarget(); as user) {
       <app-modal title="Alterar papel" [subtitle]="user.name + ' · ' + user.email" (closed)="roleTarget.set(null)">
         <form class="form" [formGroup]="roleForm" (ngSubmit)="confirmRole()" novalidate>
+          @if (roles().length === 0) {
+            <app-alert
+              kind="error"
+              message="Não foi possível carregar os papéis do sistema."
+              detail="Sem o catálogo de papéis (GET /roles) esta troca não pode ser feita com segurança. Recarregue a página ou verifique a permissão role:manage do seu papel."
+            />
+          }
           <div class="field">
             <label class="field__label" for="roleId">Novo papel</label>
             <select id="roleId" class="select" formControlName="roleId">
@@ -236,7 +249,7 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
 
           <div class="modal__footer">
             <button type="button" class="btn" (click)="roleTarget.set(null)">Cancelar</button>
-            <button type="submit" class="btn btn--primary" [disabled]="busy()">Salvar</button>
+            <button type="submit" class="btn btn--primary" [disabled]="busy() || roles().length === 0">Salvar</button>
           </div>
         </form>
       </app-modal>
@@ -311,6 +324,8 @@ export class UsersPageComponent {
 
   protected readonly roles = signal<Role[]>([]);
   protected readonly companies = signal<Company[]>([]);
+  /** Catálogo de papéis indisponível (ex.: permissão `role:manage` removida). */
+  protected readonly rolesUnavailable = signal(false);
 
   protected readonly roleFilter = signal('');
   protected readonly companyFilter = signal('');
@@ -327,7 +342,12 @@ export class UsersPageComponent {
 
   constructor() {
     forkJoin({
-      roles: this.rolesService.list().pipe(catchError(() => of<Role[]>([]))),
+      roles: this.rolesService.list().pipe(
+        catchError(() => {
+          this.rolesUnavailable.set(true);
+          return of<Role[]>([]);
+        }),
+      ),
       companies: this.directory.discoverCompanies().pipe(catchError(() => of<Company[]>([]))),
     })
       .pipe(take(1))
