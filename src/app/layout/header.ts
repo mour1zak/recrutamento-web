@@ -61,7 +61,7 @@ const NAV_ITEMS: NavItem[] = [
             <a
               [routerLink]="item.path"
               routerLinkActive="is-active"
-              [routerLinkActiveOptions]="{ exact: item.end ?? false }"
+              [routerLinkActiveOptions]="{ exact: item.end }"
               >{{ item.label }}</a
             >
           }
