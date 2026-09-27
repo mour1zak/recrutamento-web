@@ -27,7 +27,7 @@ class OutletHostComponent {}
 const url = (path: string) => `${environment.apiUrl}/${path}`;
 
 function adminSession(): void {
-  sessionStorage.setItem(
+  localStorage.setItem(
     'recrutamento.session',
     JSON.stringify({
       user: { id: 1, name: 'Admin Geral', email: 'admin@recrutamento.test', role: 'ADMIN' },
@@ -110,7 +110,7 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
 
   beforeEach(() => {
     TestBed.resetTestingModule();
-    sessionStorage.clear();
+    localStorage.clear();
     adminSession();
     TestBed.configureTestingModule({
       providers: [
@@ -133,7 +133,7 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
   });
 
   afterEach(() => {
-    sessionStorage.clear();
+    localStorage.clear();
     TestBed.resetTestingModule();
   });
 

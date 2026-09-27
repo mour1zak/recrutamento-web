@@ -61,7 +61,7 @@ describe('Fluxo de autenticação (telas de login e cadastro)', () => {
 
   beforeEach(async () => {
     TestBed.resetTestingModule();
-    sessionStorage.clear();
+    localStorage.clear();
 
     TestBed.configureTestingModule({
       providers: [
@@ -77,7 +77,7 @@ describe('Fluxo de autenticação (telas de login e cadastro)', () => {
   });
 
   afterEach(() => {
-    sessionStorage.clear();
+    localStorage.clear();
     TestBed.resetTestingModule();
   });
 
@@ -104,7 +104,7 @@ describe('Fluxo de autenticação (telas de login e cadastro)', () => {
 
     expect(auth.isAuthenticated()).toBe(true);
     expect(auth.role()).toBe('CANDIDATE');
-    expect(JSON.parse(sessionStorage.getItem('recrutamento.session') ?? 'null').accessToken).toBe('access');
+    expect(JSON.parse(localStorage.getItem('recrutamento.session') ?? 'null').accessToken).toBe('access');
     expect(router.url).toBe('/jobs');
   });
 
@@ -123,7 +123,7 @@ describe('Fluxo de autenticação (telas de login e cadastro)', () => {
     await settle();
     expect(router.url).toBe('/recruiter');
 
-    sessionStorage.clear();
+    localStorage.clear();
     const adminFixture = TestBed.createComponent(LoginPageComponent);
     adminFixture.autoDetectChanges();
     setValue(adminFixture, '#email', 'admin@recrutamento.test');
@@ -155,7 +155,7 @@ describe('Fluxo de autenticação (telas de login e cadastro)', () => {
     await settle();
 
     expect(textOf(fixture)).toContain('Email ou senha inválidos');
-    expect(sessionStorage.getItem('recrutamento.session')).toBeNull();
+    expect(localStorage.getItem('recrutamento.session')).toBeNull();
   });
 
   it('login em branco não chama a API (validação no cliente)', async () => {

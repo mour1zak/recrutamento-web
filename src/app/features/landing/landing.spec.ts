@@ -22,7 +22,7 @@ describe('Landing + gate de conteúdo', () => {
 
   beforeEach(() => {
     TestBed.resetTestingModule();
-    sessionStorage.clear();
+    localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
@@ -36,7 +36,7 @@ describe('Landing + gate de conteúdo', () => {
     router = TestBed.inject(Router);
   });
 
-  afterEach(() => sessionStorage.clear());
+  afterEach(() => localStorage.clear());
 
   it('visitante vê a proposta do produto e os caminhos de entrada', async () => {
     await router.navigateByUrl('/');
@@ -55,7 +55,7 @@ describe('Landing + gate de conteúdo', () => {
 
   it('vitrine agora exige sessão (guard da rota /jobs)', async () => {
     // Sem sessão, o authGuard (aplicado em app.routes) manda pro login com returnUrl.
-    sessionStorage.clear();
+    localStorage.clear();
     const { authGuard } = await import('../../core/guards/auth.guards');
     await router.navigateByUrl('/jobs');
     const result = TestBed.runInInjectionContext(() => authGuard({} as never, {} as never));
@@ -63,7 +63,7 @@ describe('Landing + gate de conteúdo', () => {
   });
 
   it('candidato logado que abre a raiz vai para a vitrine, não para a landing', async () => {
-    sessionStorage.setItem(
+    localStorage.setItem(
       'recrutamento.session',
       JSON.stringify({
         user: { id: 3, name: 'Candidato Um', email: 'c@x.co', role: 'CANDIDATE' },

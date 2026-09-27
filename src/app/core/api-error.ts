@@ -98,8 +98,10 @@ const STATUS_FALLBACK: Record<number, string> = {
   403: 'Você não tem permissão para executar esta ação.',
   404: 'Não encontrado.',
   409: 'Esta ação conflita com o estado atual dos dados.',
+  500: 'O servidor falhou ao processar a requisição. Em uploads, confira UPLOAD_DIR e permissões no backend.',
   502: 'Serviço externo indisponível no momento. Tente novamente em instantes.',
   503: 'Serviço temporariamente indisponível. Tente novamente em instantes.',
+  405: 'Esta operação ainda não está disponível na API.',
 };
 
 function rawMessage(body: ApiErrorBody | null | undefined): string | undefined {
@@ -127,6 +129,20 @@ export function translateApiError(error: unknown): ApiError {
     const translated = reason ? REASON_MESSAGES[reason] : undefined;
     if (translated) {
       return { status, reason, message: translated, detail: rawMessage(body), fieldErrors };
+    }
+
+    // Rota inexistente no backend (Nest responde "Cannot DELETE /x"): mensagem
+    // de produto, não o texto cru do framework — usado por funcionalidades cujo
+    // endpoint ainda não foi implementado na API (ex.: excluir documento).
+    const raw = rawMessage(body);
+    if (raw && /^Cannot (GET|POST|PUT|PATCH|DELETE) \//.test(raw)) {
+      return {
+        status,
+        reason: 'rota_inexistente_na_api',
+        message: 'Esta operação ainda não existe na API. A interface está pronta para quando o backend a implementar.',
+        detail: raw,
+        fieldErrors,
+      };
     }
 
     const fromBackend = rawMessage(body);

@@ -78,7 +78,7 @@ import { CandidateCardComponent } from '../components/candidate-card';
             </div>
             <div class="page-header__actions">
               <app-job-status [status]="job.status" />
-              <a class="btn btn--sm" [routerLink]="['/jobs', job.id]" target="_blank">Ver na vitrine</a>
+              <a class="btn btn--sm" [routerLink]="['/jobs', job.id]">Ver na vitrine</a>
               <a class="btn btn--sm" [routerLink]="['/recruiter/jobs', job.id, 'edit']">Editar vaga</a>
               @if (canChangeStatus()) {
                 <select

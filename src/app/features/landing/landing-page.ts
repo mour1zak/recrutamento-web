@@ -122,18 +122,6 @@ import { RouterLink } from '@angular/router';
       </div>
     </section>
 
-    <section class="container section section--cta">
-      <div class="card cta">
-        <div>
-          <h2>Pronto para começar?</h2>
-          <p class="muted mb-0">Crie a sua conta de candidato ou entre com a conta da sua empresa.</p>
-        </div>
-        <div class="btn-group">
-          <a class="btn btn--primary" routerLink="/auth/register">Criar conta</a>
-          <a class="btn" routerLink="/auth/login">Entrar</a>
-        </div>
-      </div>
-    </section>
   `,
   styles: [
     `
@@ -320,19 +308,6 @@ import { RouterLink } from '@angular/router';
         margin: 4px 0 0;
         color: var(--color-text-muted);
         font-size: 0.875rem;
-      }
-
-      .section--cta {
-        padding-block: var(--space-6) var(--space-7);
-      }
-
-      .cta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: var(--space-4);
-        align-items: center;
-        justify-content: space-between;
-        background: linear-gradient(120deg, var(--color-primary-soft), #ffffff 65%);
       }
 
       @media (max-width: 900px) {

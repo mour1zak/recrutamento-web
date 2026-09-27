@@ -198,9 +198,13 @@ expirou").
 `401` com mensagem de API key inválida **não** derruba a sessão (é erro de
 configuração do front, e mascarar isso dificultaria o diagnóstico).
 
-**Armazenamento:** tokens em memória (signals) + espelho em `sessionStorage`
-(sobrevive a reload, morre ao fechar a aba — adequado para PII de candidatos).
-Nenhum token em `localStorage`.
+**Armazenamento:** tokens em memória (signals) + espelho em `localStorage`.
+A primeira versão usava `sessionStorage`, mas ele é **isolado por aba**: qualquer
+link aberto em nova aba ("ver na vitrine", ctrl+clique) caía no login com a
+conta ativa ao lado — parecia "desconectou do nada". Com `localStorage` a sessão
+é compartilhada entre abas e sobrevive a reload; "Sair" e refresh inválido
+limpam tudo. Trade-off aceito e documentado: a sessão persiste até logout
+(como portais do mercado); PII exibida segue minimizada pelo backend.
 
 **Redirecionamento pós-login:** a resposta devolve `user.role`, então
 candidato → `/jobs`, recrutador → `/recruiter`, admin → `/admin`. `returnUrl`
@@ -299,8 +303,10 @@ Sequência testada de ponta a ponta (e coberta por testes automatizados):
    `/admin/users` vincule um recrutador a ela e troque papéis; em
    `/admin/roles` ajuste permissões (efeito imediato, sem novo login).
 
-O painel lateral da tela de login lista as **contas do seed** com clique para
-preencher (configurável em `environment.demoAccounts` — deixe vazio para sumir).
+O painel lateral com **contas do seed** existe, mas vem **desligado por padrão**
+(`demoAccounts: []`): expor emails/senhas numa tela de login é vazamento de
+informação. Para uma demo controlada, preencha `environment.local.ts` (arquivo
+ignorado pelo git) e o painel volta.
 
 ---
 
@@ -395,6 +401,12 @@ assets hashados saem com o MIME correto.
 
 Priorizado como "camada final" no briefing — nada aqui bloqueia o fluxo real:
 
+- **Excluir/substituir documento**: a UI já chama `DELETE /documents/:id` com
+  confirmação e trata a ausência da rota como mensagem de produto ("esta
+  operação ainda não existe na API"). Falta a rota no backend — especificação
+  sugerida: `DELETE /documents/:id`, permission `document:delete:own`, escopo
+  `ownerId === @CurrentUser().id`, `SetNull` em `Application.resumeDocumentId`
+  (já modelado no schema). Quando existir, a tela funciona sem alteração.
 - Testes de componente para `/candidate/profile` (upload de documento) e
   `/candidate/applications/:id` (desistência) — o contrato HTTP deles já está
   coberto em `services.spec.ts`.

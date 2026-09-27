@@ -25,8 +25,8 @@ describe('Services → contrato HTTP com o backend', () => {
 
   beforeEach(() => {
     TestBed.resetTestingModule();
-    sessionStorage.clear();
-    sessionStorage.setItem(
+    localStorage.clear();
+    localStorage.setItem(
       'recrutamento.session',
       JSON.stringify({
         user: { id: 3, name: 'Candidato', email: 'c@x.co', role: 'CANDIDATE' },
@@ -47,7 +47,7 @@ describe('Services → contrato HTTP com o backend', () => {
 
   afterEach(() => {
     controller.verify();
-    sessionStorage.clear();
+    localStorage.clear();
   });
 
   const url = (path: string) => `${environment.apiUrl}/${path}`;
@@ -332,6 +332,21 @@ describe('Services → contrato HTTP com o backend', () => {
       expect(request.request.responseType).toBe('blob');
       expect(request.request.headers.get('Authorization')).toBe('Bearer token');
       request.flush(new Blob(['pdf']));
+    });
+
+    it('DELETE /documents/:id é chamado para excluir (rota ainda inexistente no backend)', () => {
+      let captured: ApiError[] = [];
+      TestBed.inject(DocumentsService).remove(12).subscribe({ error: (error: ApiError) => captured.push(error) });
+
+      const request = controller.expectOne(url('documents/12'));
+      expect(request.request.method).toBe('DELETE');
+      expect(request.request.headers.get('Authorization')).toBe('Bearer token');
+      request.flush(
+        { statusCode: 404, error: 'Not Found', message: 'Cannot DELETE /documents/12' },
+        { status: 404, statusText: 'Not Found' },
+      );
+
+      expect(captured[0]?.reason).toBe('rota_inexistente_na_api');
     });
 
     it('valida MIME e tamanho antes do envio (mesmas regras do backend)', () => {

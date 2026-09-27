@@ -73,6 +73,10 @@ export class DocumentsService {
     return this.api.get<DocumentSummary[]>('documents/me');
   }
 
+  private delete<T>(path: string): Observable<T> {
+    return this.api.delete<T>(path);
+  }
+
   /** Baixa o arquivo e já dispara o "salvar como" no navegador. */
   download(id: number, fallbackFilename = `documento-${id}`): Observable<FileDownload> {
     return this.api.download(`documents/${id}`, fallbackFilename).pipe(
@@ -81,6 +85,18 @@ export class DocumentsService {
         return result;
       }),
     );
+  }
+
+  /**
+   * Excluir documento (`DELETE /documents/:id`).
+   *
+   * O backend AINDA não expõe esta rota (só POST/GET): a UI chama mesmo assim
+   * e trata o "Cannot DELETE …" como mensagem de produto ("operacao ainda não
+   * existe na API"), então o dia em que a rota existir a tela passa a funcionar
+   * sem mudança de código.
+   */
+  remove(id: number): Observable<void> {
+    return this.delete<void>(`documents/${id}`);
   }
 
   /**

@@ -2,7 +2,6 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@a
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { take } from 'rxjs';
-import { environment } from '../../../../environments/environment';
 import { ApiError } from '../../../core/api-error';
 import { AuthService, homePathForRole } from '../../../core/auth/auth.service';
 import { readReturnUrl } from '../../../core/guards/auth.guards';
@@ -82,71 +81,10 @@ import { AuthCardComponent } from '../auth-card';
         <a routerLink="/auth/register">Cadastre-se como candidato</a>
       </p>
 
-      <div authAside>
-        @if (demoAccounts().length > 0) {
-          <div class="card card--tight">
-            <div class="section-title">Contas deste ambiente</div>
-            <p class="card__hint">
-              Usuários criados pelo seed do backend (<code>prisma db seed</code>). Clique para preencher o formulário.
-            </p>
-            <div class="demo-list">
-              @for (account of demoAccounts(); track account.email) {
-                <button type="button" class="demo-item" (click)="useAccount(account.email, account.password)">
-                  <span class="demo-item__label">{{ account.label }}</span>
-                  <span class="demo-item__email">{{ account.email }}</span>
-                </button>
-              }
-            </div>
-          </div>
-        }
-
-        <div class="card card--tight">
-          <div class="section-title">O que cada perfil vê</div>
-          <ul class="role-list">
-            <li><strong>Candidato</strong> — vitrine de vagas, candidatura, acompanhamento de status e entrevistas.</li>
-            <li><strong>Recrutador</strong> — vagas da empresa, candidaturas recebidas, avaliação e indicadores.</li>
-            <li><strong>Administrador</strong> — empresas (com CEP), usuários e permissões por papel.</li>
-          </ul>
-        </div>
-      </div>
     </app-auth-card>
   `,
   styles: [
     `
-      .demo-list {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-2);
-      }
-
-      .demo-item {
-        display: flex;
-        flex-direction: column;
-        gap: 2px;
-        text-align: left;
-        padding: var(--space-2) var(--space-3);
-        border: 1px solid var(--color-border);
-        border-radius: var(--radius);
-        background: var(--color-surface);
-        cursor: pointer;
-        font: inherit;
-      }
-
-      .demo-item:hover {
-        border-color: var(--color-primary);
-        background: var(--color-primary-soft);
-      }
-
-      .demo-item__label {
-        font-size: 0.8125rem;
-        font-weight: 600;
-      }
-
-      .demo-item__email {
-        font-size: 0.75rem;
-        color: var(--color-text-muted);
-      }
-
       .role-list {
         margin: 0;
         padding-left: 1.1rem;
@@ -169,8 +107,6 @@ export class LoginPageComponent {
   protected readonly submitting = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly sessionExpired = signal(false);
-
-  protected readonly demoAccounts = computed(() => environment.demoAccounts ?? []);
 
   protected readonly form = this.fb.group({
     // `email` do backend: @IsEmail + máx. 180 (normalizado em minúsculas lá).
@@ -196,12 +132,6 @@ export class LoginPageComponent {
     if (field.hasError('email')) return 'Informe um email válido.';
     if (field.hasError('maxlength')) return 'Texto longo demais.';
     return 'Valor inválido.';
-  }
-
-  protected useAccount(email: string, password: string): void {
-    this.form.patchValue({ email, password });
-    this.form.markAsUntouched();
-    this.errorMessage.set(null);
   }
 
   protected submit(): void {

@@ -10,9 +10,8 @@ export const environment = {
   apiUrl: 'http://localhost:3000',
   apiKey: 'dev-api-key-troque-pelo-valor-do-seu-env',
   appName: 'Recruta',
-  demoAccounts: [
-    { role: 'CANDIDATE', label: 'Candidato (seed)', email: 'candidato@recrutamento.test', password: 'Senha@123' },
-    { role: 'RECRUITER', label: 'Recrutador (seed)', email: 'recrutador@recrutamento.test', password: 'Senha@123' },
-    { role: 'ADMIN', label: 'Administrador (seed)', email: 'admin@recrutamento.test', password: 'Senha@123' },
-  ] as { role: string; label: string; email: string; password: string }[],
+  // Desligado por padrão: expor emails/senhas de seed na tela de login é
+  // vazamento de informação. Para uma DEMO controlada, preencha aqui (ou no
+  // environment.local.ts, que não é versionado) e o painel volta a aparecer.
+  demoAccounts: [] as { role: string; label: string; email: string; password: string }[],
 };

@@ -34,8 +34,8 @@ describe('Interceptors de autenticação', () => {
   };
 
   beforeEach(() => {
-    sessionStorage.clear();
-    sessionStorage.setItem('recrutamento.session', JSON.stringify(session));
+    localStorage.clear();
+    localStorage.setItem('recrutamento.session', JSON.stringify(session));
 
     TestBed.configureTestingModule({
       providers: [
@@ -55,7 +55,7 @@ describe('Interceptors de autenticação', () => {
 
   afterEach(() => {
     controller.verify();
-    sessionStorage.clear();
+    localStorage.clear();
   });
 
   it('restaura a sessão persistida em sessionStorage', () => {
@@ -186,7 +186,7 @@ describe('Interceptors de autenticação', () => {
 
     expect(receivedError).toBeTruthy();
     expect(auth.isAuthenticated()).toBe(false);
-    expect(sessionStorage.getItem('recrutamento.session')).toBeNull();
+    expect(localStorage.getItem('recrutamento.session')).toBeNull();
     expect(router.url).toContain('/auth/login');
     expect(router.url).toContain('expired=1');
   });
@@ -202,7 +202,7 @@ describe('Interceptors de autenticação', () => {
     TestBed.flushEffects();
 
     expect(auth.user()).toBeNull();
-    expect(sessionStorage.getItem('recrutamento.session')).toBeNull();
+    expect(localStorage.getItem('recrutamento.session')).toBeNull();
   });
 
   it('401 por API key inválida não derruba a sessão do usuário', () => {

@@ -42,7 +42,7 @@ const PUBLIC_JOB = {
 const SCOPED_JOB = { ...PUBLIC_JOB, companyId: 1, createdById: 2, filledCount: 0 };
 
 function candidateSession(): void {
-  sessionStorage.setItem(
+  localStorage.setItem(
     'recrutamento.session',
     JSON.stringify({
       user: { id: 3, name: 'Candidato Um', email: 'candidato@recrutamento.test', role: 'CANDIDATE' },
@@ -96,7 +96,7 @@ describe('Fluxo do candidato — vitrine, detalhe e candidatura', () => {
 
   beforeEach(() => {
     TestBed.resetTestingModule();
-    sessionStorage.clear();
+    localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         provideHttpClient(withInterceptors([apiKeyInterceptor, authInterceptor])),
@@ -116,7 +116,7 @@ describe('Fluxo do candidato — vitrine, detalhe e candidatura', () => {
   });
 
   afterEach(() => {
-    sessionStorage.clear();
+    localStorage.clear();
     TestBed.resetTestingModule();
   });
 
@@ -358,7 +358,7 @@ describe('Fluxo do candidato — vitrine, detalhe e candidatura', () => {
   });
 
   it('recrutador que abre a própria vaga vê os atalhos de gestão, não o botão de candidatar', async () => {
-    sessionStorage.setItem(
+    localStorage.setItem(
       'recrutamento.session',
       JSON.stringify({
         user: { id: 2, name: 'Recrutador Um', email: 'recrutador@recrutamento.test', role: 'RECRUITER' },

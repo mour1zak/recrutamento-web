@@ -33,8 +33,8 @@ const fakeSnapshot = {} as unknown as ActivatedRouteSnapshot;
 const fakeState = {} as never;
 
 function loginAs(session: unknown): void {
-  sessionStorage.clear();
-  sessionStorage.setItem('recrutamento.session', JSON.stringify(session));
+  localStorage.clear();
+  localStorage.setItem('recrutamento.session', JSON.stringify(session));
 }
 
 /**
@@ -49,7 +49,7 @@ describe('Guards de rota', () => {
   let router: Router;
 
   beforeEach(async () => {
-    sessionStorage.clear();
+    localStorage.clear();
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
@@ -65,7 +65,7 @@ describe('Guards de rota', () => {
     await router.navigateByUrl('/candidate/applications');
   });
 
-  afterEach(() => sessionStorage.clear());
+  afterEach(() => localStorage.clear());
 
   it('authGuard manda visitante para o login guardando o returnUrl', () => {
     const result = TestBed.runInInjectionContext(() => authGuard(fakeSnapshot, fakeState));
@@ -132,15 +132,15 @@ describe('Guards de rota', () => {
 });
 
 describe('PermissionsService — espelho do RBAC do backend', () => {
-  beforeEach(() => sessionStorage.clear());
+  beforeEach(() => localStorage.clear());
   afterEach(() => {
-    sessionStorage.clear();
+    localStorage.clear();
     TestBed.resetTestingModule();
   });
 
   function permissionsFor(session: unknown): PermissionsService {
     if (session) {
-      sessionStorage.setItem('recrutamento.session', JSON.stringify(session));
+      localStorage.setItem('recrutamento.session', JSON.stringify(session));
     }
     TestBed.resetTestingModule();
     TestBed.configureTestingModule({ providers: [provideRouter([])] });

@@ -18,6 +18,7 @@ import {
 } from '../../../core/services/documents.service';
 import { ToastService } from '../../../core/toast.service';
 import { CepFieldComponent, CepFieldState } from '../../../shared/forms/cep-field';
+import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog';
 
 /** Object URL local + versão "confiável" para o sanitizer do Angular. */
 interface PreviewState {
@@ -45,7 +46,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
 @Component({
   selector: 'app-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, AlertComponent, CepFieldComponent, EmptyStateComponent, LoadingComponent],
+  imports: [ReactiveFormsModule, AlertComponent, CepFieldComponent, ConfirmDialogComponent, EmptyStateComponent, LoadingComponent],
   template: `
     <div class="container page container--narrow">
       <div class="page-header">
@@ -279,7 +280,13 @@ import { LoadingComponent } from '../../../shared/ui/loading';
             </form>
 
             @if (uploadError()) {
-              <div class="mt-4"><app-alert [message]="uploadError()" kind="error" /></div>
+              <div class="mt-4"><app-alert [message]="uploadError()" kind="error" [detail]="uploadErrorDetail()" /></div>
+            }
+
+            @if (uploadSuccess()) {
+              <div class="mt-4">
+                <app-alert [message]="uploadSuccess()" kind="success" />
+              </div>
             }
 
             <hr class="divider" />
@@ -311,6 +318,14 @@ import { LoadingComponent } from '../../../shared/ui/loading';
                               <button type="button" class="btn btn--sm" (click)="view(document)">Ver</button>
                             }
                             <button type="button" class="btn btn--sm" (click)="download(document)">Baixar</button>
+                            <button
+                              type="button"
+                              class="btn btn--sm btn--outline-danger"
+                              (click)="askDelete(document)"
+                              [disabled]="deletingId() === document.id"
+                            >
+                              Excluir
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -327,6 +342,18 @@ import { LoadingComponent } from '../../../shared/ui/loading';
             }
           </section>
         </div>
+      }
+
+      @if (deleteTarget(); as document) {
+        <app-confirm-dialog
+          title="Excluir documento"
+          [message]="deleteMessage(document)"
+          confirmLabel="Excluir"
+          tone="danger"
+          [busy]="deletingId() === document.id"
+          (confirmed)="confirmDelete(document)"
+          (cancelled)="deleteTarget.set(null)"
+        />
       }
     </div>
   `,
@@ -411,6 +438,10 @@ export class ProfilePageComponent {
   protected readonly lastUploadedId = signal<number | null>(null);
   protected readonly uploading = signal(false);
   protected readonly uploadError = signal<string | null>(null);
+  protected readonly uploadErrorDetail = signal<string | null>(null);
+  protected readonly uploadSuccess = signal<string | null>(null);
+  protected readonly deleteTarget = signal<DocumentSummary | null>(null);
+  protected readonly deletingId = signal<number | null>(null);
   protected readonly uploadType = signal<DocumentType>('RESUME');
 
   protected readonly form = inject(NonNullableFormBuilder).group({
@@ -677,9 +708,10 @@ export class ProfilePageComponent {
         next: (uploaded) => {
           this.uploading.set(false);
           this.lastUploadedId.set(uploaded.id);
+          this.uploadSuccess.set(`"${file.name}" enviado — já está na lista abaixo e pronto para ser anexado a candidaturas.`);
           this.releasePreview();
           this.selectedFile.set(null);
-          this.toasts.success('Documento enviado.', 'Ele já aparece na lista abaixo, pronto para ser anexado.');
+          this.toasts.success('Documento enviado.');
           this.loadDocuments();
           const input = document.getElementById('documentFile') as HTMLInputElement | null;
           if (input) input.value = '';
@@ -689,6 +721,35 @@ export class ProfilePageComponent {
           // tenta de novo sem precisar repescar o arquivo.
           this.uploading.set(false);
           this.uploadError.set(error.message);
+          this.uploadErrorDetail.set(error.detail ?? null);
+        },
+      });
+  }
+
+  protected askDelete(document: DocumentSummary): void {
+    this.deleteTarget.set(document);
+  }
+
+  protected deleteMessage(document: DocumentSummary): string {
+    return `Excluir "${document.originalName}"? Se ele estiver anexado a uma candidatura, o anexo é desvinculado.`;
+  }
+
+  protected confirmDelete(document: DocumentSummary): void {
+    this.deletingId.set(document.id);
+    this.documentsService
+      .remove(document.id)
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          this.deletingId.set(null);
+          this.deleteTarget.set(null);
+          this.documents.update((current) => current.filter((item) => item.id !== document.id));
+          this.toasts.success('Documento excluído.');
+        },
+        error: (error: ApiError) => {
+          this.deletingId.set(null);
+          this.deleteTarget.set(null);
+          this.toasts.error(error.message, error.reason === 'rota_inexistente_na_api' ? 'Recurso previsto para uma próxima versão da API.' : undefined);
         },
       });
   }

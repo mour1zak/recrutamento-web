@@ -8,6 +8,14 @@ import type { AuthResponse, AuthUser, Company, RoleName } from '../models';
 const STORAGE_KEY = 'recrutamento.session';
 const COMPANY_KEY = 'recrutamento.companyId';
 
+/**
+ * Sessão em `localStorage` (não `sessionStorage`): sessionStorage é ISOLADO POR
+ * ABA, então qualquer link aberto em nova aba ("ver na vitrine", ctrl+clique)
+ * caía no login com a conta ativa ao lado — parecia "desconectou do nada".
+ * Com localStorage a sessão é compartilhada entre abas e sobrevive a reload;
+ * o botão "Sair" (e o refresh inválido) continuam limpando tudo.
+ */
+
 interface StoredSession {
   user: AuthUser;
   accessToken: string;
@@ -30,7 +38,7 @@ export function homePathForRole(role: RoleName | null | undefined): string {
 
 function readSession(): StoredSession | null {
   try {
-    const raw = sessionStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as StoredSession;
     if (!parsed?.user?.email || !parsed.accessToken || !parsed.refreshToken) return null;
@@ -43,7 +51,7 @@ function readSession(): StoredSession | null {
 function readStoredCompanyId(userId: number | null): number | null {
   if (userId === null) return null;
   try {
-    const raw = sessionStorage.getItem(COMPANY_KEY);
+    const raw = localStorage.getItem(COMPANY_KEY);
     if (!raw) return null;
     const parsed = JSON.parse(raw) as { userId: number; companyId: number };
     return parsed.userId === userId ? parsed.companyId : null;
@@ -55,8 +63,8 @@ function readStoredCompanyId(userId: number | null): number | null {
 /**
  * Sessão do usuário logado.
  *
- * - tokens em memória + espelho em `sessionStorage` (fechar a aba encerra a
- *   sessão — comportamento esperado para um SPA que exibe PII de candidatos);
+ * - tokens em memória + espelho em `localStorage` (sessão compartilhada entre
+ *   abas e resiliente a reload; "Sair" e refresh inválido limpam tudo);
  * - a renovação automática do access token (`POST /auth/refresh`, com rotação)
  *   é disparada pelo interceptor de auth, que chama `refresh()` daqui;
  * - `x-api-key` é anexado a TODA chamada pelo interceptor de API key.
@@ -99,11 +107,11 @@ export class AuthService {
     const accessToken = this.accessToken();
     const refreshToken = this.refreshToken();
     if (!user || !accessToken || !refreshToken) {
-      sessionStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(STORAGE_KEY);
       return;
     }
     try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ user, accessToken, refreshToken } satisfies StoredSession));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ user, accessToken, refreshToken } satisfies StoredSession));
     } catch {
       /* modo privado / cota estourada: a sessão segue viva em memória */
     }
@@ -119,7 +127,7 @@ export class AuthService {
     if (previousUserId !== response.user.id || response.user.role !== 'RECRUITER') {
       this.ownCompany.set(null);
       this.ownCompanyId.set(null);
-      sessionStorage.removeItem(COMPANY_KEY);
+      localStorage.removeItem(COMPANY_KEY);
     }
     return response.user;
   }
@@ -214,8 +222,8 @@ export class AuthService {
     this.refreshToken.set(null);
     this.ownCompany.set(null);
     this.ownCompanyId.set(null);
-    sessionStorage.removeItem(STORAGE_KEY);
-    sessionStorage.removeItem(COMPANY_KEY);
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(COMPANY_KEY);
   }
 
   // -------------------------------------------------------------------------
@@ -233,7 +241,7 @@ export class AuthService {
 
     this.ownCompanyId.set(companyId);
     try {
-      sessionStorage.setItem(COMPANY_KEY, JSON.stringify({ userId: user.id, companyId }));
+      localStorage.setItem(COMPANY_KEY, JSON.stringify({ userId: user.id, companyId }));
     } catch {
       /* ignorado: é só um cache de conveniência */
     }

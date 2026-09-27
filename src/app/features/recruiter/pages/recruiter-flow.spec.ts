@@ -25,7 +25,7 @@ class OutletHostComponent {}
 const url = (path: string) => `${environment.apiUrl}/${path}`;
 
 function recruiterSession(): void {
-  sessionStorage.setItem(
+  localStorage.setItem(
     'recrutamento.session',
     JSON.stringify({
       user: { id: 2, name: 'Recrutador Um', email: 'recrutador@recrutamento.test', role: 'RECRUITER' },
@@ -114,7 +114,7 @@ describe('Fluxo do recrutador — avaliação de candidaturas', () => {
 
   beforeEach(() => {
     TestBed.resetTestingModule();
-    sessionStorage.clear();
+    localStorage.clear();
     recruiterSession();
     TestBed.configureTestingModule({
       providers: [
@@ -135,7 +135,7 @@ describe('Fluxo do recrutador — avaliação de candidaturas', () => {
   });
 
   afterEach(() => {
-    sessionStorage.clear();
+    localStorage.clear();
     TestBed.resetTestingModule();
   });
 

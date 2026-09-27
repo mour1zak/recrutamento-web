@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { RouterLink } from '@angular/router';
 
 /**
  * Rodapé público, com linguagem de produto (o site é apresentado a um cliente
@@ -8,7 +7,6 @@ import { RouterLink } from '@angular/router';
 @Component({
   selector: 'app-footer',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
   template: `
     <footer class="site-footer">
       <div class="container site-footer__inner">
@@ -25,13 +23,9 @@ import { RouterLink } from '@angular/router';
           </div>
         </div>
 
-        <nav class="site-footer__nav" aria-label="Rodapé">
-          <a routerLink="/jobs">Vagas abertas</a>
-          <a routerLink="/auth/login">Entrar</a>
-          <a routerLink="/auth/register">Criar conta</a>
-        </nav>
-
-        <span class="site-footer__copy">© 2026 Recruta. Todos os direitos reservados.</span>
+        <span class="site-footer__copy">
+          © 2026 Recruta. Encontre a vaga certa. Contrate a pessoa certa.
+        </span>
       </div>
     </footer>
   `,
@@ -77,11 +71,6 @@ import { RouterLink } from '@angular/router';
 
       .site-footer__tagline {
         color: var(--color-text-muted);
-      }
-
-      .site-footer__nav {
-        display: flex;
-        gap: var(--space-4);
       }
 
       .site-footer__copy {
