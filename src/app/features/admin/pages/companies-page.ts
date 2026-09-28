@@ -104,13 +104,9 @@ import { LoadingComponent } from '../../../shared/ui/loading';
         </table>
       </div>
 
-      <p class="field__hint mt-4">
-        Empresas recém-criadas aparecem imediatamente; as demais são descobertas pelo backend a partir de vagas e
-        usuários vinculados.
-      </p>
     } @else if (!error()) {
       <app-empty-state
-        icon="🏢"
+        icon="building"
         title="Nenhuma empresa encontrada"
         description="Cadastre a primeira empresa para poder vincular recrutadores e publicar vagas."
       >
@@ -124,7 +120,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
         [message]="toggleMessage(company)"
         [warning]="
           company.isActive
-            ? 'Uma empresa desativada some da vitrine: as vagas abertas dela deixam de ser exibidas publicamente e novas candidaturas são bloqueadas (404). Nada é apagado.'
+            ? 'Uma empresa desativada some da vitrine e para de receber candidaturas. Nada é apagado: dá para reativar depois.'
             : null
         "
         [confirmLabel]="company.isActive ? 'Desativar' : 'Reativar'"

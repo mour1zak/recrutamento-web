@@ -107,7 +107,7 @@ import { ApplicationStatusBadgeComponent } from '../../../shared/ui/status-badge
         />
       } @else if (!error()) {
         <app-empty-state
-          icon="📄"
+          icon="file"
           title="Você ainda não se candidatou a nenhuma vaga"
           description="As vagas abertas estão na vitrine. A candidatura leva menos de um minuto."
         >

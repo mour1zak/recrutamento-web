@@ -10,7 +10,7 @@ import { EmptyStateComponent } from '../shared/ui/empty-state';
   template: `
     <div class="container page">
       <app-empty-state
-        icon="🧭"
+        icon="compass"
         title="Página não encontrada"
         description="O endereço que você tentou abrir não existe neste aplicativo."
       >

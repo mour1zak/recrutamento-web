@@ -61,7 +61,7 @@ import { ApplicationStatusBadgeComponent, JobStatusBadgeComponent } from '../../
 
         @if (noCompany()) {
           <app-empty-state
-            icon="🏢"
+            icon="building"
             title="Nenhuma empresa vinculada à sua conta"
             description="Um administrador precisa vincular você a uma empresa em Administração → Usuários → alterar empresa. Assim que isso acontecer, suas vagas e candidaturas aparecem aqui."
           >

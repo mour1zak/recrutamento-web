@@ -26,7 +26,7 @@ export const routes: Routes = [
       {
         path: '',
         pathMatch: 'full',
-        title: 'Recruta — Plataforma de Recrutamento',
+        title: 'LinklDoor — Plataforma de LinklDoormento',
         canActivate: [homeIfAuthedGuard],
         loadComponent: () => import('./features/landing/landing-page').then((m) => m.LandingPageComponent),
       },
@@ -79,7 +79,7 @@ export const routes: Routes = [
 
       {
         path: '404',
-        title: 'Não encontrado — Recruta',
+        title: 'Não encontrado — LinklDoor',
         loadComponent: () => import('./features/not-found-page').then((m) => m.NotFoundPageComponent),
       },
       { path: '**', redirectTo: '404' },

@@ -1,5 +1,5 @@
 import { Injectable, inject } from '@angular/core';
-import { Observable, map } from 'rxjs';
+import { Observable, forkJoin, map, of, switchMap } from 'rxjs';
 import { AuthService } from '../auth/auth.service';
 import { ApiClient } from '../http/api-client';
 import type { JobStatus, ListQuery, Paginated, PublicJob, ScopedJob } from '../models';
@@ -65,6 +65,40 @@ export class JobsService {
       search: query.search,
       sortOrder: query.sortOrder,
     });
+  }
+
+  /**
+   * Busca ampla da vitrine: título, descrição OU nome da empresa, aceitando
+   * termo pela metade ("cib" → "cibersecurity…").
+   *
+   * O `?search` do backend cobre só o título; para cumprir a promessa do campo
+   * de busca ("cargo, empresa ou palavra-chave"), o front varre o catálogo
+   * público (até 5 páginas de 100) e filtra no cliente — somente dados que o
+   * backend já torna públicos, sem inventar rota.
+   */
+  searchPublicJobs(term: string, sortOrder: 'asc' | 'desc' = 'desc'): Observable<Paginated<PublicJob>> {
+    return this.listPublicJobs({ page: 1, limit: 100, sortOrder }).pipe(
+      switchMap((first) => {
+        const pages = Math.min(Math.ceil(first.total / 100), 5);
+        if (pages <= 1) return of([first]);
+        return forkJoin(
+          Array.from({ length: pages - 1 }, (_, index) =>
+            this.listPublicJobs({ page: index + 2, limit: 100, sortOrder }),
+          ),
+        ).pipe(map((rest) => [first, ...rest]));
+      }),
+      map((pages) => {
+        const all = pages.flatMap((page) => page.data);
+        const t = term.trim().toLowerCase();
+        const data = all.filter(
+          (job) =>
+            job.title.toLowerCase().includes(t) ||
+            job.description.toLowerCase().includes(t) ||
+            job.company.name.toLowerCase().includes(t),
+        );
+        return { data, page: 1, limit: Math.max(data.length, 1), total: data.length };
+      }),
+    );
   }
 
   getJob(id: number): Observable<ScopedJob> {

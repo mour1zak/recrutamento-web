@@ -14,6 +14,6 @@ export const environment = {
   production: true,
   apiUrl: 'https://api.exemplo.com.br',
   apiKey: 'PREencha-com-a-api-key-de-producao',
-  appName: 'Recruta',
+  appName: 'LinklDoor',
   demoAccounts: [] as { role: string; label: string; email: string; password: string }[],
 };

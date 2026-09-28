@@ -11,6 +11,7 @@ import { AlertComponent } from '../../../shared/ui/alert';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state';
 import { LoadingComponent } from '../../../shared/ui/loading';
 import { PaginationComponent } from '../../../shared/ui/pagination';
+import { IconComponent } from '../../../shared/ui/icon';
 
 /**
  * Vitrine pública de vagas (`GET /jobs`) — a tela inicial do produto.
@@ -24,7 +25,7 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
 @Component({
   selector: 'app-jobs-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, AlertComponent, EmptyStateComponent, LoadingComponent, PaginationComponent],
+  imports: [RouterLink, AlertComponent, EmptyStateComponent, LoadingComponent, PaginationComponent, IconComponent],
   template: `
     <section class="hero">
       <div class="container">
@@ -34,12 +35,12 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
           do processo.
         </p>
 
-        <form class="hero__search" (submit)="applySearch(searchInput.value)" role="search">
+        <form class="hero__search" (submit)="onSearchSubmit($event, searchInput.value)" role="search">
           <input
             #searchInput
             type="search"
             class="input"
-            placeholder="Buscar por cargo, tecnologia ou palavra-chave…"
+            placeholder="Buscar por cargo, empresa ou palavra-chave…"
             aria-label="Buscar vagas"
             [value]="search()"
           />
@@ -107,10 +108,13 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
               </div>
 
               <div class="job-card__meta">
-                <span>{{ job.isRemote ? '🌐 Remota' : '📍 Presencial' }}</span>
-                <span>💶 {{ salary(job) }}</span>
-                <span>👥 {{ job.vacancies }} vaga(s)</span>
-                <span>🕒 {{ published(job) }}</span>
+                <span>
+                  <app-icon [name]="job.isRemote ? 'globe' : 'pin'" />
+                  {{ job.isRemote ? 'Remota' : 'Presencial' }}
+                </span>
+                <span><app-icon name="money" /> {{ salary(job) }}</span>
+                <span><app-icon name="users" /> {{ job.vacancies }} vaga(s)</span>
+                <span><app-icon name="clock" /> {{ published(job) }}</span>
               </div>
 
               <p class="job-card__excerpt">{{ job.description }}</p>
@@ -118,16 +122,23 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
           }
         </div>
 
-        <app-pagination
-          [page]="result()?.page ?? 1"
-          [limit]="result()?.limit ?? pageSize"
-          [total]="result()?.total ?? 0"
-          label="vagas"
-          (pageChange)="changePage($event)"
-        />
+        @if (!search()) {
+          <app-pagination
+            [page]="result()?.page ?? 1"
+            [limit]="result()?.limit ?? pageSize"
+            [total]="result()?.total ?? 0"
+            label="vagas"
+            (pageChange)="changePage($event)"
+          />
+        } @else {
+          <p class="field__hint mt-4">
+            A busca consulta o catálogo público aberto (título, descrição e empresa) em uma única página,
+            ordenada por {{ sortOrder() === 'asc' ? 'mais antigas' : 'mais recentes' }}.
+          </p>
+        }
       } @else if (!error()) {
         <app-empty-state
-          icon="🔎"
+          icon="search"
           title="Nenhuma vaga aberta com esses filtros"
           description="A busca usa o índice do backend (título e descrição). Tente outro termo ou remova os filtros."
         >
@@ -251,14 +262,13 @@ export class JobsPageComponent {
           this.sortOrder.set(order === 'asc' ? 'asc' : order === 'relevancia' ? 'relevancia' : 'desc');
         }),
         switchMap(() => {
-          const order = this.sortOrder();
-          return this.jobs.listPublicJobs({
-            search: this.search() || undefined,
-            page: this.page(),
-            limit: this.pageSize,
-            // "Mais relevantes" é ranking de cliente; pro backend vai a ordem padrão.
-            sortOrder: order === 'relevancia' ? undefined : order,
-          });
+          const order = this.sortOrder() === 'asc' ? 'asc' : 'desc';
+          const term = this.search();
+          // Com termo: busca ampla no cliente (título+descrição+empresa), página
+          // única. Sem termo: paginação normal do backend.
+          return term
+            ? this.jobs.searchPublicJobs(term, order)
+            : this.jobs.listPublicJobs({ page: this.page(), limit: this.pageSize, sortOrder: order });
         }),
         takeUntilDestroyed(),
       )
@@ -286,6 +296,12 @@ export class JobsPageComponent {
 
   protected published(job: PublicJob): string {
     return `publicada ${formatRelative(job.createdAt)}`;
+  }
+
+  /** Sem preventDefault o browser recarrega a página (form sem action) e o filtro se perde. */
+  protected onSearchSubmit(event: Event, value: string): void {
+    event.preventDefault();
+    this.applySearch(value);
   }
 
   protected applySearch(value: string): void {

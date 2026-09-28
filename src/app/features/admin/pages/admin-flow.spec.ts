@@ -706,7 +706,7 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
       ).click();
       await settle();
 
-      expect(textOf(host)).toContain('revoga os refresh tokens');
+      expect(textOf(host)).toContain('Desativar bloqueia o acesso do usuário imediatamente');
       clickModalConfirm(host, 'Desativar');
 
       const request = controller.expectOne(url('users/2/deactivate'));

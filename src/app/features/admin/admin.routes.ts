@@ -10,27 +10,27 @@ export const ADMIN_ROUTES: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'companies' },
       {
         path: 'companies',
-        title: 'Empresas — Recruta',
+        title: 'Empresas — LinklDoor',
         loadComponent: () => import('./pages/companies-page').then((m) => m.CompaniesPageComponent),
       },
       {
         path: 'companies/new',
-        title: 'Nova empresa — Recruta',
+        title: 'Nova empresa — LinklDoor',
         loadComponent: () => import('./pages/company-form-page').then((m) => m.CompanyFormPageComponent),
       },
       {
         path: 'companies/:id/edit',
-        title: 'Editar empresa — Recruta',
+        title: 'Editar empresa — LinklDoor',
         loadComponent: () => import('./pages/company-form-page').then((m) => m.CompanyFormPageComponent),
       },
       {
         path: 'users',
-        title: 'Usuários — Recruta',
+        title: 'Usuários — LinklDoor',
         loadComponent: () => import('./pages/users-page').then((m) => m.UsersPageComponent),
       },
       {
         path: 'roles',
-        title: 'Papéis e permissões — Recruta',
+        title: 'Papéis e permissões — LinklDoor',
         loadComponent: () => import('./pages/roles-page').then((m) => m.RolesPageComponent),
       },
     ],

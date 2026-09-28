@@ -7,19 +7,19 @@ export const CANDIDATE_ROUTES: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'applications' },
   {
     path: 'applications',
-    title: 'Minhas candidaturas — Recruta',
+    title: 'Minhas candidaturas — LinklDoor',
     canActivate: [permissionGuard(PERMISSIONS.APPLICATION_READ_OWN)],
     loadComponent: () => import('./pages/my-applications-page').then((m) => m.MyApplicationsPageComponent),
   },
   {
     path: 'applications/:id',
-    title: 'Candidatura — Recruta',
+    title: 'Candidatura — LinklDoor',
     canActivate: [permissionGuard(PERMISSIONS.APPLICATION_READ_OWN)],
     loadComponent: () => import('./pages/candidate-application-page').then((m) => m.CandidateApplicationPageComponent),
   },
   {
     path: 'profile',
-    title: 'Meu perfil — Recruta',
+    title: 'Meu perfil — LinklDoor',
     canActivate: [permissionGuard(PERMISSIONS.CANDIDATE_PROFILE_UPDATE_OWN)],
     loadComponent: () => import('./pages/profile-page').then((m) => m.ProfilePageComponent),
   },

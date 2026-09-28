@@ -3,7 +3,13 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import { take } from 'rxjs';
 import { ApiError } from '../../../core/api-error';
 import { PermissionsService, PERMISSIONS } from '../../../core/auth/permissions.service';
-import { APPLICATION_STATUS_LABEL, formatBytes, formatDateTime, toIsoFromLocalInput } from '../../../core/format';
+import {
+  APPLICATION_STATUS_LABEL,
+  formatBytes,
+  formatDateTime,
+  toIsoFromLocalInput,
+  toLocalInputValue,
+} from '../../../core/format';
 import type { Application, ApplicationStatus, Interview } from '../../../core/models';
 import { isFullApplication } from '../../../core/models';
 import { APPLICATION_STATUS_TRANSITIONS, ApplicationsService } from '../../../core/services/applications.service';
@@ -89,8 +95,7 @@ import { InterviewStatusBadgeComponent } from '../../../shared/ui/status-badges'
             <div>
               <div class="card__title">Currículo anexado</div>
               <div class="card__hint">
-                O acesso do recrutador existe enquanto a candidatura estiver em avaliação — depois de recusada, o
-                backend remove o acesso ao arquivo.
+                O currículo fica disponível enquanto a candidatura estiver em avaliação.
               </div>
             </div>
           </div>
@@ -256,15 +261,24 @@ import { InterviewStatusBadgeComponent } from '../../../shared/ui/status-badges'
           <form class="form" [formGroup]="scheduleForm" (ngSubmit)="confirmSchedule()" novalidate>
             <div class="field">
               <label class="field__label" for="scheduledAt">Data e hora <span class="required">*</span></label>
-              <input id="scheduledAt" class="input" type="datetime-local" formControlName="scheduledAt" />
-              <span class="field__hint">O horário é enviado em ISO 8601 (UTC), como o backend espera.</span>
+              <input
+                id="scheduledAt"
+                class="input"
+                type="datetime-local"
+                formControlName="scheduledAt"
+                [min]="minSchedule()"
+              />
+              @if (scheduleConflict()) {
+                <span class="field__error">{{ scheduleConflict() }}</span>
+              }
+              <span class="field__hint">Use o seu horário local; a conversão é feita automaticamente.</span>
             </div>
 
             <div class="field">
               <label class="field__label" for="interviewerId">Id do entrevistador (opcional)</label>
               <input id="interviewerId" class="input" type="number" min="1" step="1" formControlName="interviewerId" />
               <span class="field__hint">
-                Deve ser o id de um usuário recrutador/administrador (Administração → Usuários mostra os ids).
+                Opcional: número identificador de quem conduz a entrevista (visível em Administração → Usuários).
               </span>
             </div>
 
@@ -272,8 +286,7 @@ import { InterviewStatusBadgeComponent } from '../../../shared/ui/status-badges'
               <div class="alert alert--info">
                 <span class="alert__icon" aria-hidden="true">i</span>
                 <div class="alert__body">
-                  Reagendar cria uma NOVA entrevista (a atual passa a "Reagendada"). É assim que o backend preserva o
-                  histórico.
+                  Reagendar cria uma nova entrevista e mantém a anterior no histórico.
                 </div>
               </div>
             }
@@ -374,6 +387,42 @@ export class ApplicationReviewComponent {
   protected readonly feedbackDialog = signal<Interview | null>(null);
 
   protected readonly reasonForm = this.fb.group({ reason: this.fb.control('', [Validators.maxLength(500)]) });
+  /** `min` do datetime-local: agora (horário local) — entrevista no passado não existe. */
+  protected readonly minSchedule = signal(toLocalInputValue(new Date().toISOString()));
+
+  /**
+   * Conflito de horário com as entrevistas já existentes desta candidatura.
+   *
+   * Método (não `computed`): o valor do formulário não é dependência reativa,
+   * então um computed cacheava o resultado da abertura do diálogo.
+   */
+  protected scheduleConflict(): string | null {
+    const dialog = this.scheduleDialog();
+    if (!dialog) return null;
+    const raw = this.scheduleForm.getRawValue().scheduledAt;
+    const when = toIsoFromLocalInput(raw ?? '');
+    if (!when) return null;
+
+    const start = new Date(when);
+    if (dialog.mode === 'create' && start.getTime() < Date.now()) {
+      return 'Escolha uma data e hora a partir de agora — não é possível agendar para o passado.';
+    }
+
+    const durationMin = 60;
+    const startMs = start.getTime();
+    const endMs = startMs + durationMin * 60_000;
+    for (const interview of this.interviews()) {
+      if (interview.status !== 'SCHEDULED') continue;
+      if (dialog.mode === 'reschedule' && interview.id === dialog.interviewId) continue;
+      const otherStart = new Date(interview.scheduledAt).getTime();
+      const otherEnd = otherStart + (interview.durationMinutes ?? durationMin) * 60_000;
+      if (startMs < otherEnd && otherStart < endMs) {
+        return `Já existe entrevista às ${formatDateTime(interview.scheduledAt)} para esta candidatura. Escolha outro horário.`;
+      }
+    }
+    return null;
+  }
+
   protected readonly scheduleForm = this.fb.group({
     scheduledAt: this.fb.control('', [Validators.required]),
     interviewerId: this.fb.control<number | null>(null, [Validators.min(1)]),
@@ -518,6 +567,12 @@ export class ApplicationReviewComponent {
 
     this.busy.set(true);
     this.actionError.set(null);
+
+    if (this.scheduleConflict()) {
+      this.actionError.set(this.scheduleConflict());
+      this.busy.set(false);
+      return;
+    }
 
     const request =
       dialog.mode === 'create'

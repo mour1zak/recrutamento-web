@@ -162,7 +162,7 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
                       [class.btn--outline-danger]="user.isActive"
                       (click)="askToggle(user)"
                       [disabled]="busy() || user.id === currentUserId()"
-                      [title]="user.id === currentUserId() ? 'O backend não permite desativar a própria conta' : null"
+                      [title]="user.id === currentUserId() ? 'Não é possível desativar a própria conta' : null"
                     >
                       {{ user.isActive ? 'Desativar' : 'Reativar' }}
                     </button>
@@ -183,7 +183,7 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
       />
     } @else if (!error()) {
       <app-empty-state
-        icon="👤"
+        icon="user"
         title="Nenhum usuário com esses filtros"
         description="Ajuste o papel, a empresa ou a situação para ver outras contas."
       >
@@ -198,7 +198,7 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
         [message]="confirmMessage(user)"
         [warning]="
           user.isActive
-            ? 'Desativar revoga os refresh tokens do usuário: a sessão dele cai no próximo acesso. A conta pode ser reativada depois.'
+            ? 'Desativar bloqueia o acesso do usuário imediatamente. A conta pode ser reativada depois.'
             : null
         "
         [confirmLabel]="user.isActive ? 'Desativar' : 'Reativar'"
@@ -228,7 +228,7 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
               }
             </select>
             <span class="field__hint">
-              As permissões são recalculadas do banco a cada request: a mudança vale na hora, sem novo login.
+              A mudança vale na hora, sem necessidade de novo login.
             </span>
           </div>
 
@@ -236,9 +236,7 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
             <div class="alert alert--warning">
               <span class="alert__icon" aria-hidden="true">!</span>
               <div class="alert__body">
-                Se este recrutador tiver vagas ativas, o backend recusa a troca de papel (<code
-                  >409 recrutador_com_vagas_ativas</code
-                >).
+                Se este recrutador tiver vagas ativas, a troca de papel será recusada até que elas sejam encerradas.
               </div>
             </div>
           }
@@ -272,8 +270,7 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
               }
             </select>
             <span class="field__hint">
-              Sem vínculo, o recrutador não consegue criar nem listar vagas (o backend responde 404 em
-              <code>/jobs/mine</code>).
+              Sem vínculo, o recrutador não consegue criar nem listar vagas.
             </span>
           </div>
 

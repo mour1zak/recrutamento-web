@@ -27,7 +27,7 @@ const NAV_ITEMS: NavItem[] = [
   { path: '/jobs', label: 'Vagas', roles: ['CANDIDATE', 'RECRUITER', 'ADMIN'], public: true },
   { path: '/candidate/applications', label: 'Minhas candidaturas', roles: ['CANDIDATE'] },
   { path: '/candidate/profile', label: 'Meu perfil', roles: ['CANDIDATE'] },
-  { path: '/recruiter', label: 'Painel', roles: ['RECRUITER'] },
+  { path: '/recruiter', label: 'Painel', roles: ['RECRUITER'], end: true },
   { path: '/recruiter/jobs', label: 'Minhas vagas', adminLabel: 'Todas as vagas', roles: ['RECRUITER', 'ADMIN'] },
   { path: '/recruiter/stats', label: 'Indicadores', roles: ['RECRUITER', 'ADMIN'] },
   { path: '/admin/companies', label: 'Empresas', roles: ['ADMIN'] },
@@ -55,7 +55,7 @@ const NAV_ITEMS: NavItem[] = [
               <circle cx="18.5" cy="16.5" r="3.5" />
             </svg>
           </span>
-          <span class="brand__name">Recruta</span>
+          <span class="brand__name">LinklDoor</span>
         </a>
 
         <nav class="site-nav" aria-label="Navegação principal">

@@ -18,13 +18,13 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
             </svg>
           </span>
           <div>
-            <strong>Recruta</strong>
+            <strong>LinklDoor</strong>
             <span class="site-footer__tagline">Conectando pessoas e oportunidades.</span>
           </div>
         </div>
 
         <span class="site-footer__copy">
-          © 2026 Recruta. Encontre a vaga certa. Contrate a pessoa certa.
+          © 2026 LinklDoor. Encontre a vaga certa. Contrate a pessoa certa.
         </span>
       </div>
     </footer>

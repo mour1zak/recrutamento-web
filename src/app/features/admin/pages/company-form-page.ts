@@ -68,8 +68,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
               <div class="alert alert--warning">
                 <span class="alert__icon" aria-hidden="true">!</span>
                 <div class="alert__body">
-                  Empresa desativada: <code>PATCH /companies/{{ current.id }}</code> responde 404. Reative na lista de
-                  empresas antes de editar.
+                  Empresa desativada. Reative-a na lista de empresas antes de editar.
                 </div>
               </div>
             }
@@ -131,7 +130,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
               <span class="alert__icon" aria-hidden="true">i</span>
               <div class="alert__body">
                 Endereço consultado: {{ preview }}
-                <small>O backend grava o endereço resolvido ao salvar (não enviamos logradouro/cidade/UF).</small>
+                <small>O endereço é confirmado e gravado automaticamente ao salvar.</small>
               </div>
             </div>
           }
@@ -163,7 +162,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
             </button>
           </div>
           @if (cepBlocked()) {
-            <span class="field__error">Corrija o CEP antes de salvar — o backend rejeita CEP inexistente.</span>
+            <span class="field__error">Corrija o CEP antes de salvar: o CEP informado não foi encontrado.</span>
           }
         </form>
       }

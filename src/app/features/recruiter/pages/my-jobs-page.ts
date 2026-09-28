@@ -50,7 +50,7 @@ import { JobStatusBadgeComponent } from '../../../shared/ui/status-badges';
 
       @if (noCompany()) {
         <app-empty-state
-          icon="🏢"
+          icon="building"
           title="Sua conta ainda não está vinculada a uma empresa"
           description="Peça a um administrador para vincular você a uma empresa (Administração → Usuários). Sem vínculo, o backend não permite criar nem listar vagas."
         />
@@ -83,8 +83,8 @@ import { JobStatusBadgeComponent } from '../../../shared/ui/status-badges';
             <div class="alert alert--info mb-4">
               <span class="alert__icon" aria-hidden="true">i</span>
               <div class="alert__body">
-                {{ hiddenCanceled().length }} vaga(s) cancelada(s) desta página estão ocultas na visão "Ativas" —
-                cancelamento é o soft-delete do backend: o histórico é preservado, mas não faz parte do dia a dia.
+                {{ hiddenCanceled().length }} vaga(s) cancelada(s) desta página estão ocultas na visão "Ativas".
+                O histórico é preservado e pode ser consultado em "Todas, inclusive canceladas".
               </div>
               <div class="alert__actions">
                 <button type="button" class="btn btn--sm" (click)="showAll()">Ver todas</button>
@@ -139,7 +139,7 @@ import { JobStatusBadgeComponent } from '../../../shared/ui/status-badges';
           />
         } @else if (!error()) {
           <app-empty-state
-            icon="📌"
+            icon="pin"
             title="Nenhuma vaga neste filtro"
             description="Crie uma vaga para começar a receber candidaturas."
           >

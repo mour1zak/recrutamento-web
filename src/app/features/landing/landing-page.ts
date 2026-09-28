@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { IconComponent } from '../../shared/ui/icon';
 
 /**
  * Porta de entrada do produto (equivalente ao `index.htm` do Glassdoor).
@@ -13,7 +14,7 @@ import { RouterLink } from '@angular/router';
 @Component({
   selector: 'app-landing-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, IconComponent],
   template: `
     <section class="hero">
       <div class="container hero__inner">
@@ -66,7 +67,7 @@ import { RouterLink } from '@angular/router';
       <h2 class="section__title">Um produto, três jornadas</h2>
       <div class="grid grid--3">
         <article class="card journey">
-          <span class="journey__icon" aria-hidden="true">🧑‍💻</span>
+          <span class="journey__icon" aria-hidden="true"><app-icon name="user" [size]="24" /></span>
           <h3>Para candidatos</h3>
           <p>
             Vitrine de vagas com busca, candidatura com carta de apresentação e currículo anexado, status de cada
@@ -75,7 +76,7 @@ import { RouterLink } from '@angular/router';
         </article>
 
         <article class="card journey">
-          <span class="journey__icon" aria-hidden="true">🏢</span>
+          <span class="journey__icon" aria-hidden="true"><app-icon name="building" [size]="24" /></span>
           <h3>Para empresas</h3>
           <p>
             Publique vagas, receba candidaturas, avalie perfis no ritmo do seu funil, agende entrevistas e acompanhe
@@ -84,7 +85,7 @@ import { RouterLink } from '@angular/router';
         </article>
 
         <article class="card journey">
-          <span class="journey__icon" aria-hidden="true">🛡️</span>
+          <span class="journey__icon" aria-hidden="true"><app-icon name="shield" [size]="24" /></span>
           <h3>Com governança</h3>
           <p>
             Papéis e permissões configuráveis, gestão de usuários e empresas com endereço validado por CEP — cada
@@ -263,7 +264,7 @@ import { RouterLink } from '@angular/router';
       }
 
       .journey__icon {
-        font-size: 1.6rem;
+        color: var(--color-primary);
       }
 
       .journey p {

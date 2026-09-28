@@ -291,6 +291,60 @@ describe('Fluxo do recrutador — avaliação de candidaturas', () => {
       expect(changedEvents).toBeGreaterThan(0);
     });
 
+    it('não agenda entrevista no passado (bloqueio de cliente, sem chamada)', async () => {
+      await render({ ...PENDING_APPLICATION, status: 'INTERVIEW' });
+      clickButtonContaining(fixture, 'Agendar entrevista');
+      await settle();
+
+      const datetime = fixture.nativeElement.querySelector('#scheduledAt') as HTMLInputElement;
+      datetime.value = '2020-01-01T10:00';
+      datetime.dispatchEvent(new Event('input'));
+      await settle();
+      clickButton(fixture, 'Agendar');
+      await settle();
+
+      expect(controller.match(() => true)).toHaveLength(0);
+      expect(textOf(fixture)).toContain('a partir de agora');
+    });
+
+    it('não agenda duas entrevistas no mesmo horário para a mesma candidatura', async () => {
+      const when = new Date(Date.now() + 2 * 60 * 60 * 1000);
+      const pad = (n: number) => String(n).padStart(2, '0');
+      const localValue = `${when.getFullYear()}-${pad(when.getMonth() + 1)}-${pad(when.getDate())}T${pad(
+        when.getHours(),
+      )}:${pad(when.getMinutes())}`;
+
+      await render({ ...PENDING_APPLICATION, status: 'INTERVIEW' }, [
+        {
+          id: 9,
+          applicationId: 42,
+          interviewerId: null,
+          scheduledAt: when.toISOString(),
+          durationMinutes: 60,
+          isRemote: true,
+          location: null,
+          meetingLink: null,
+          status: 'SCHEDULED',
+          feedback: null,
+          previousInterviewId: null,
+          createdAt: '2026-09-27T12:00:00.000Z',
+          updatedAt: '2026-09-27T12:00:00.000Z',
+        },
+      ]);
+
+      clickButtonContaining(fixture, 'Agendar entrevista');
+      await settle();
+      const datetime = fixture.nativeElement.querySelector('#scheduledAt') as HTMLInputElement;
+      datetime.value = localValue;
+      datetime.dispatchEvent(new Event('input'));
+      await settle();
+      clickButton(fixture, 'Agendar');
+      await settle();
+
+      expect(controller.match(() => true)).toHaveLength(0);
+      expect(textOf(fixture)).toContain('Já existe entrevista');
+    });
+
     it('409 application_not_in_interview_stage é traduzido se a regra for violada', async () => {
       await render({ ...PENDING_APPLICATION, status: 'INTERVIEW' });
       clickButtonContaining(fixture, 'Agendar entrevista');

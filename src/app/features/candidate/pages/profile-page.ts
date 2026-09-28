@@ -27,6 +27,7 @@ interface PreviewState {
 import { AlertComponent } from '../../../shared/ui/alert';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state';
 import { LoadingComponent } from '../../../shared/ui/loading';
+import { IconComponent } from '../../../shared/ui/icon';
 
 /**
  * Perfil do candidato (`GET`/`PATCH /candidates/me`) + documentos
@@ -45,7 +46,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
 @Component({
   selector: 'app-profile-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, AlertComponent, CepFieldComponent, EmptyStateComponent, LoadingComponent],
+  imports: [ReactiveFormsModule, AlertComponent, CepFieldComponent, EmptyStateComponent, IconComponent, LoadingComponent],
   template: `
     <div class="container page container--narrow">
       <div class="page-header">
@@ -144,7 +145,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
                 <span class="alert__icon" aria-hidden="true">i</span>
                 <div class="alert__body">
                   Endereço resolvido: {{ preview }}
-                  <small>O backend confirma e grava o endereço ao salvar o perfil.</small>
+                  <small>O endereço é confirmado automaticamente ao salvar o perfil.</small>
                 </div>
               </div>
             }
@@ -191,7 +192,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
               </button>
             </div>
             @if (cepBlocked()) {
-              <span class="field__error">Corrija o CEP antes de salvar (o backend rejeitaria o CEP inexistente).</span>
+              <span class="field__error">Corrija o CEP antes de salvar: o CEP informado não foi encontrado.</span>
             }
           </form>
 
@@ -245,7 +246,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
                 <div class="doc-preview">
                   <div class="row row--between">
                     <div class="doc-preview__meta">
-                      <span class="doc-preview__icon" aria-hidden="true">{{ file.type === 'application/pdf' ? '📄' : '📃' }}</span>
+                      <span class="doc-preview__icon" aria-hidden="true"><app-icon name="file" [size]="22" /></span>
                       <div>
                         <div class="strong">{{ file.name }}</div>
                         <div class="cell-sub">{{ size(file.size) }} · {{ file.type || 'tipo não informado' }}</div>
@@ -326,7 +327,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
               </div>
             } @else {
               <app-empty-state
-                icon="📎"
+                icon="paperclip"
                 title="Nenhum documento enviado"
                 description="Anexe seu currículo para poder vinculá-lo às suas candidaturas."
               />

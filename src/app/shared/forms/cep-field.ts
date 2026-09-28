@@ -94,7 +94,7 @@ type LookupState = 'idle' | 'loading' | 'resolved' | 'not-found' | 'unavailable'
         }
         @case ('resolved') {
           <span class="field__hint" [id]="hintId()">
-            ✓ {{ addressSummary() }} — o endereço é confirmado pelo backend ao salvar.
+            ✓ {{ addressSummary() }} — endereço confirmado.
           </span>
         }
         @case ('not-found') {

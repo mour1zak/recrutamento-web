@@ -33,8 +33,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
       <div class="page-header__titles">
         <h1>Papéis e permissões</h1>
         <p class="page-header__subtitle mb-0">
-          O que cada papel pode fazer é lido do banco a cada requisição. Alterações aqui valem imediatamente — inclusive
-          para quem já está logado.
+          Alterações valem imediatamente — inclusive para quem já está logado.
         </p>
       </div>
       <div class="page-header__actions">
@@ -94,8 +93,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
               <div class="alert alert--warning mb-4">
                 <span class="alert__icon" aria-hidden="true">!</span>
                 <div class="alert__body">
-                  Papel de sistema: o backend protege este papel contra esvaziamento total e contra remover
-                  <code>role:manage</code> de todos os papéis.
+                  Papel de sistema: é protegido contra alterações que deixariam a plataforma sem administração.
                 </div>
               </div>
             }

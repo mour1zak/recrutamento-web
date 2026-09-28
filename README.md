@@ -1,4 +1,4 @@
-# Recruta — Frontend Angular da Plataforma de Recrutamento
+# LinklDoor — Frontend Angular da Plataforma de LinklDoormento
 
 Aplicação web (SPA) que consome a API [`recrutamento-api`](https://github.com/mour1zak/recrutamento-api) —
 NestJS + PostgreSQL + Prisma, com JWT, RBAC dinâmico, upload de currículo e
@@ -295,7 +295,7 @@ Sequência testada de ponta a ponta (e coberta por testes automatizados):
    endereço) e **anexe um currículo** (PDF/DOC/DOCX até 5 MB).
 2. `/jobs` → abra uma vaga → **Candidatar-se** (carta + currículo anexado).
    Em `/candidate/applications` veja o badge **Em análise** e a trilha do funil.
-3. **Recrutador** — saia e entre com `recrutador@recrutamento.test`: o painel
+3. **LinklDoordor** — saia e entre com `recrutador@recrutamento.test`: o painel
    mostra indicadores e a fila de triagem. Abra a candidatura: o cartão mostra a
    *visão de triagem* (nome/título/skills) enquanto está `PENDING`; mova para
    **Em avaliação** e o backend libera perfil completo + download do currículo.

@@ -65,7 +65,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
         <app-loading label="Carregando indicadores…" />
       } @else if (!companyId()) {
         <app-empty-state
-          icon="🏢"
+          icon="building"
           title="Nenhuma empresa para exibir"
           description="Não há empresa vinculada à sua conta (ou nenhuma empresa cadastrada no sistema)."
         />
@@ -135,10 +135,6 @@ import { LoadingComponent } from '../../../shared/ui/loading';
           </section>
         </div>
 
-        <p class="field__hint mt-4">
-          Fonte: <code>GET /companies/{{ companyId() }}/stats</code>. Os valores de conversão e tempo médio são
-          calculados pelo backend a partir do histórico de status das candidaturas.
-        </p>
       }
     </div>
   `,

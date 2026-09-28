@@ -159,7 +159,7 @@ import { CandidateCardComponent } from '../components/candidate-card';
               />
             } @else {
               <app-empty-state
-                icon="📥"
+                icon="inbox"
                 title="Nenhuma candidatura recebida"
                 description="Assim que alguém se candidatar a esta vaga, o processo de triagem aparece aqui."
               />
@@ -592,15 +592,15 @@ export class JobApplicationsPageComponent {
         this.profile.set(profile);
         if (!profile) {
           this.profileNote.set(
-            'O candidato ainda não criou o perfil público (o backend só devolve os dados enviados na candidatura).',
+            'O candidato ainda não preencheu o perfil público.',
           );
           return;
         }
         if (!isFullProfile(profile)) {
           this.profileNote.set(
             status === 'PENDING'
-              ? 'Enquanto a candidatura estiver em "Em análise", o backend libera apenas dados de triagem.'
-              : 'Perfil resumido devolvido pelo backend para esta candidatura.',
+              ? 'Enquanto a candidatura estiver em "Em análise", apenas os dados de triagem são exibidos.'
+              : 'Perfil resumido nesta candidatura.',
           );
         }
       });

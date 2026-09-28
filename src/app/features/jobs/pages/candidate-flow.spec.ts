@@ -137,7 +137,35 @@ describe('Fluxo do candidato — vitrine, detalhe e candidatura', () => {
     expect(text).toContain('2 vaga(s)');
   });
 
-  it('busca da vitrine vai como ?search para o backend', async () => {
+  it('submit da busca não recarrega a página (preventDefault)', async () => {
+    await render('/jobs');
+    controller.expectOne(url('jobs?page=1&limit=10&sortOrder=desc')).flush({ data: [], page: 1, limit: 10, total: 0 });
+    await settle();
+
+    const form = host.nativeElement.querySelector('.hero__search') as HTMLFormElement;
+    const input = form.querySelector('input') as HTMLInputElement;
+    input.value = 'nest';
+    const event = new Event('submit', { cancelable: true, bubbles: true });
+    form.dispatchEvent(event);
+
+    // Sem preventDefault o browser recarrega a página e o filtro se perde
+    // (bug real que só aparece fora do jsdom).
+    expect(event.defaultPrevented).toBe(true);
+    await settle();
+
+    // Busca ampla: varre o catálogo público (o ?search do backend cobre só título).
+    controller.expectOne(url('jobs?page=1&limit=100&sortOrder=desc')).flush({
+      data: [PUBLIC_JOB],
+      page: 1,
+      limit: 100,
+      total: 1,
+    });
+    await settle();
+
+    expect(textOf(host)).toContain('Desenvolvedor(a) Backend Node.js');
+  });
+
+  it('busca filtra por título, descrição e empresa no catálogo público', async () => {
     await render('/jobs');
     controller.expectOne(url('jobs?page=1&limit=10&sortOrder=desc')).flush({ data: [], page: 1, limit: 10, total: 0 });
     await settle();
@@ -147,12 +175,17 @@ describe('Fluxo do candidato — vitrine, detalhe e candidatura', () => {
     (host.nativeElement.querySelector('.hero__search button[type="submit"]') as HTMLButtonElement).click();
     await settle();
 
-    const searchRequest = controller.expectOne(url('jobs?page=1&limit=10&search=nest&sortOrder=desc'));
-    expect(searchRequest.request.params.get('search')).toBe('nest');
-    searchRequest.flush({ data: [PUBLIC_JOB], page: 1, limit: 10, total: 1 });
+    // O termo filtra no cliente sobre o catálogo público: título, descrição e empresa.
+    controller.expectOne(url('jobs?page=1&limit=100&sortOrder=desc')).flush({
+      data: [PUBLIC_JOB, { ...PUBLIC_JOB, id: 9, title: 'Designer de Produto', description: 'UI.', company: { id: 2, name: 'Outra Ltda' } }],
+      page: 1,
+      limit: 100,
+      total: 2,
+    });
     await settle();
 
     expect(textOf(host)).toContain('1 vaga(s) aberta(s) para "nest"');
+    expect(textOf(host)).not.toContain('Designer de Produto');
   });
 
   it('ordenação "Mais relevantes" ranqueia título que contém a busca', async () => {
@@ -166,13 +199,13 @@ describe('Fluxo do candidato — vitrine, detalhe e candidatura', () => {
     await settle();
 
     // descrição menciona "nest" no primeiro item; título só no segundo
-    controller.expectOne(url('jobs?page=1&limit=10&search=nest&sortOrder=desc')).flush({
+    controller.expectOne(url('jobs?page=1&limit=100&sortOrder=desc')).flush({
       data: [
         { ...PUBLIC_JOB, id: 1, title: 'Pessoa desenvolvedora', description: 'Usa nest no dia a dia.' },
         { ...PUBLIC_JOB, id: 2, title: 'Especialista NestJS', description: 'Backend geral.' },
       ],
       page: 1,
-      limit: 10,
+      limit: 100,
       total: 2,
     });
     await settle();

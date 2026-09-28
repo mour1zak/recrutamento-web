@@ -34,8 +34,7 @@ import { formatBytes } from '../../../core/format';
 
       @if (reduced()) {
         <p class="field__hint mb-0">
-          Visão de triagem: resumo, telefone e endereço ficam disponíveis assim que a candidatura sair de "Em análise"
-          (regra de minimização de dados do backend).
+          Visão de triagem: resumo, telefone e endereço ficam disponíveis assim que a candidatura sair de "Em análise".
         </p>
       } @else {
         <dl class="candidate__facts">
