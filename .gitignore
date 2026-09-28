@@ -43,7 +43,10 @@ __screenshots__/
 .DS_Store
 Thumbs.db
 
-# Configuração local (URL da API / x-api-key do seu ambiente)
+# Configuração local (URL da API / x-api-key do seu ambiente) — o arquivo
+# que o build de dev realmente usa (ver fileReplacements no angular.json)
+# é este; o template versionado, sem segredo, é o .example ao lado dele.
+/src/environments/environment.development.ts
 /src/environments/environment.local.ts
 .env
 .env.local
