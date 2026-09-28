@@ -63,8 +63,10 @@ E suba com:
 npm run start:local   # http://localhost:4200 usando environment.local.ts
 ```
 
-(`npm start` continua funcionando, com `environment.development.ts` versionado —
-útil para CI/demo; para o seu dia a dia, prefira `start:local`.)
+(`npm start` usa o `environment.ts` base, com chave placeholder — serve para
+CI/build; para rodar contra o seu backend, use sempre `npm run start:local`.
+O arquivo `environment.development.ts` não é versionado: se existir um sobrando
+na sua máquina, pode apagá-lo.)
 
 > **Sobre a chave no bundle:** em um SPA qualquer valor embutido é público. A
 > `x-api-key` é uma chave de *aplicação* (camada extra pedida pelo enunciado),

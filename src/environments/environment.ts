@@ -17,7 +17,7 @@
 export const environment = {
   production: false,
   apiUrl: 'http://localhost:3000',
-  apiKey: 'dev-api-key-troque-pelo-valor-do-seu-env',
+  apiKey: 'DEFINA_SUA_API_KEY_NO_START_LOCAL',
   /** Nome exibido no cabeçalho/rodapé. */
   appName: 'LinklDoor',
   /**
