@@ -840,41 +840,96 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
       await settle();
     });
 
-    it('vínculo por código: empresa fora da lista é informada pelo id e o backend valida', async () => {
-      const host = await bootstrapUsers(await render());
-
-      const recruiterRow = [...host.nativeElement.querySelectorAll('tbody tr')].find((row: HTMLElement) =>
-        row.textContent?.includes('recrutador@recrutamento.test'),
-      ) as HTMLElement;
-      ([...recruiterRow.querySelectorAll('button')].find((button: HTMLButtonElement) =>
-        button.textContent?.includes('Empresa'),
-      ) as HTMLButtonElement).click();
+    it('empresa nova entra no ciclo vinculando recrutador pela própria página', async () => {
+      const host = TestBed.createComponent(OutletHostComponent);
+      host.autoDetectChanges();
+      await router.navigateByUrl('/admin/companies/14/edit');
       await settle();
 
-      // troca para o modo manual pelo próprio select
-      const select = host.nativeElement.querySelector('#companyId') as HTMLSelectElement;
-      select.value = 'manual';
+      controller.expectOne(url('companies/14')).flush({
+        id: 14,
+        name: 'Casas Bahia',
+        cnpj: null,
+        description: null,
+        isActive: true,
+        cep: '01310-100',
+        street: 'Avenida Paulista',
+        city: 'São Paulo',
+        state: 'SP',
+        createdAt: '2026-09-28T12:00:00.000Z',
+        updatedAt: '2026-09-28T12:00:00.000Z',
+      });
+      // recrutadores da empresa (ainda nenhum)
+      controller.expectOne(url('users?page=1&limit=100&companyId=14')).flush({ data: [], page: 1, limit: 100, total: 0 });
+      await settle();
+
+      expect(textOf(host)).toContain('Nenhum recrutador vinculado');
+
+      clickButton(host, 'Vincular recrutador');
+      await settle();
+      controller.expectOne(url('users?page=1&limit=100&role=RECRUITER')).flush({
+        data: [
+          {
+            id: 2,
+            name: 'Recrutador Um',
+            email: 'recrutador@recrutamento.test',
+            isActive: true,
+            roleId: 2,
+            companyId: 8,
+            createdAt: '2026-09-01T12:00:00.000Z',
+            role: { name: 'RECRUITER' },
+          },
+        ],
+        page: 1,
+        limit: 100,
+        total: 1,
+      });
+      await settle();
+
+      const select = host.nativeElement.querySelector('#linkUserId') as HTMLSelectElement;
+      const option = [...select.options].find((opt) => opt.textContent?.includes('Recrutador Um'));
+      select.value = option?.value ?? '';
       select.dispatchEvent(new Event('change'));
       await settle();
-
-      const manual = host.nativeElement.querySelector('#companyIdManual') as HTMLInputElement;
-      expect(manual).toBeTruthy();
-      manual.value = '14';
-      manual.dispatchEvent(new Event('input'));
-      await settle();
-
-      clickModalConfirm(host, 'Salvar');
+      clickModalConfirm(host, 'Vincular');
 
       const request = controller.expectOne(url('users/2/company'));
+      expect(request.request.method).toBe('PATCH');
       expect(request.request.body).toEqual({ companyId: 14 });
-      request.flush(
-        { statusCode: 404, reason: 'company_not_found', message: 'Empresa não encontrada.' },
-        { status: 404, statusText: 'Not Found' },
-      );
+      request.flush({
+        id: 2,
+        name: 'Recrutador Um',
+        email: 'recrutador@recrutamento.test',
+        isActive: true,
+        roleId: 2,
+        companyId: 14,
+        createdAt: '2026-09-01T12:00:00.000Z',
+        role: { name: 'RECRUITER' },
+      });
       await settle();
 
-      // o backend é a autoridade: código inexistente → erro traduzido no diálogo
-      expect(textOf(host)).toContain('Empresa não encontrada');
+      // recarrega os recrutadores da empresa
+      controller.expectOne(url('users?page=1&limit=100&companyId=14')).flush({
+        data: [
+          {
+            id: 2,
+            name: 'Recrutador Um',
+            email: 'recrutador@recrutamento.test',
+            isActive: true,
+            roleId: 2,
+            companyId: 14,
+            createdAt: '2026-09-01T12:00:00.000Z',
+            role: { name: 'RECRUITER' },
+          },
+        ],
+        page: 1,
+        limit: 100,
+        total: 1,
+      });
+      await settle();
+
+      expect(textOf(host)).toContain('Recrutador Um');
+      expect(textOf(host)).not.toContain('Nenhum recrutador vinculado');
     });
 
     it('filtro por papel vai como ?role para o backend', async () => {

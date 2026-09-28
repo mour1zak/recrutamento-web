@@ -1,16 +1,18 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
-import { take } from 'rxjs';
+import { catchError, of, take } from 'rxjs';
 import { ApiError } from '../../../core/api-error';
 import { formatDate, maskCnpj } from '../../../core/format';
-import type { Company } from '../../../core/models';
+import type { Company, Paginated, UserSummary } from '../../../core/models';
 import { CompanyDirectoryService } from '../../../core/services/company-directory.service';
 import { CompaniesService } from '../../../core/services/companies.service';
 import { ToastService } from '../../../core/toast.service';
 import { CepFieldComponent, CepFieldState } from '../../../shared/forms/cep-field';
 import { AlertComponent } from '../../../shared/ui/alert';
 import { LoadingComponent } from '../../../shared/ui/loading';
+import { ModalComponent } from '../../../shared/ui/modal';
+import { UsersService } from '../../../core/services/users.service';
 
 /**
  * Criar (`POST /companies`) e editar (`PATCH /companies/:id`) empresa — a tela
@@ -29,7 +31,14 @@ import { LoadingComponent } from '../../../shared/ui/loading';
 @Component({
   selector: 'app-company-form-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink, AlertComponent, CepFieldComponent, LoadingComponent],
+  imports: [
+    ReactiveFormsModule,
+    RouterLink,
+    AlertComponent,
+    CepFieldComponent,
+    LoadingComponent,
+    ModalComponent,
+  ],
   template: `
     <div class="page-header">
       <div class="page-header__titles">
@@ -165,6 +174,116 @@ import { LoadingComponent } from '../../../shared/ui/loading';
             <span class="field__error">Corrija o CEP antes de salvar: o CEP informado não foi encontrado.</span>
           }
         </form>
+
+        @if (isEdit() && company(); as current) {
+          <section class="card mt-4">
+            <div class="card__header">
+              <div>
+                <div class="card__title">Recrutadores desta empresa</div>
+                <div class="card__hint">
+                  Vincular um recrutador é o que coloca a empresa no ciclo da plataforma: com alguém vinculado, ela
+                  passa a aparecer nas listas de empresas dos painéis de gestão.
+                </div>
+              </div>
+              <button type="button" class="btn btn--sm btn--primary" (click)="openLink()" [disabled]="linkBusy()">
+                Vincular recrutador
+              </button>
+            </div>
+
+            @if (recruitersLoading()) {
+              <app-loading label="Carregando recrutadores…" />
+            } @else if (companyRecruiters().length > 0) {
+              <div class="table-wrap">
+                <table class="table">
+                  <thead>
+                    <tr>
+                      <th>Nome</th>
+                      <th>Email</th>
+                      <th>Situação</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    @for (recruiter of companyRecruiters(); track recruiter.id) {
+                      <tr>
+                        <td class="cell-title">{{ recruiter.name }}</td>
+                        <td>{{ recruiter.email }}</td>
+                        <td>
+                          @if (recruiter.isActive) {
+                            <span class="badge badge--success">Ativo</span>
+                          } @else {
+                            <span class="badge badge--muted">Desativado</span>
+                          }
+                        </td>
+                        <td class="actions">
+                          <button
+                            type="button"
+                            class="btn btn--sm"
+                            (click)="unlink(recruiter)"
+                            [disabled]="linkBusy()"
+                          >
+                            Desvincular
+                          </button>
+                        </td>
+                      </tr>
+                    }
+                  </tbody>
+                </table>
+              </div>
+            } @else {
+              <p class="muted mb-0">
+                Nenhum recrutador vinculado. Enquanto for assim, esta empresa não aparece nas listas descobríveis da
+                plataforma — vincule o primeiro recrutador para que ela entre no ciclo.
+              </p>
+            }
+          </section>
+        }
+
+        @if (linkOpen()) {
+          <app-modal
+            title="Vincular recrutador"
+            [subtitle]="company()?.name ?? ''"
+            (closed)="linkOpen.set(false)"
+          >
+            <form class="form" [formGroup]="linkForm" (ngSubmit)="confirmLink()" novalidate>
+              <div class="field">
+                <label class="field__label" for="linkUserId">Recrutador</label>
+                <select id="linkUserId" class="select" formControlName="userId">
+                  <option [ngValue]="null">Selecione…</option>
+                  @for (candidate of linkCandidates(); track candidate.id) {
+                    <option [ngValue]="candidate.id">
+                      {{ candidate.name }} — {{ candidate.email }}
+                      @if (candidate.companyId) {
+                        (hoje na empresa #{{ candidate.companyId }})
+                      }
+                    </option>
+                  }
+                </select>
+                <span class="field__hint">
+                  Usuários com papel de recrutador. Vincular aqui move o recrutador da empresa anterior para esta.
+                </span>
+              </div>
+
+              @if (linkError()) {
+                <app-alert [message]="linkError()" kind="error" />
+              }
+
+              <div class="modal__footer">
+                <button type="button" class="btn" (click)="linkOpen.set(false)">Cancelar</button>
+                <button
+                  type="submit"
+                  class="btn btn--primary"
+                  [disabled]="linkBusy() || linkForm.controls.userId.value === null"
+                >
+                  @if (linkBusy()) {
+                    <span class="spinner" aria-hidden="true"></span>
+                  }
+                  Vincular
+                </button>
+              </div>
+            </form>
+          </app-modal>
+        }
       }
     }
   `,
@@ -176,6 +295,7 @@ export class CompanyFormPageComponent {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
+  private readonly usersService = inject(UsersService);
 
   protected readonly loading = signal(true);
   protected readonly saving = signal(false);
@@ -197,6 +317,18 @@ export class CompanyFormPageComponent {
   protected readonly addressPreview = signal<string | null>(null);
 
   protected readonly companyId = signal<number | null>(null);
+
+  // Gestão de recrutadores da empresa (somente no modo edição): usa apenas
+  // rotas existentes — GET /users?companyId=:id, GET /users?role=RECRUITER e
+  // PATCH /users/:id/company. É o caminho natural para uma empresa nova entrar
+  // no ciclo descobrível, sem código digitado e sem lista inventada.
+  protected readonly companyRecruiters = signal<UserSummary[]>([]);
+  protected readonly recruitersLoading = signal(false);
+  protected readonly linkOpen = signal(false);
+  protected readonly linkCandidates = signal<UserSummary[]>([]);
+  protected readonly linkError = signal<string | null>(null);
+  protected readonly linkBusy = signal(false);
+  protected readonly linkForm = this.fb.group({ userId: this.fb.control<number | null>(null) });
   protected readonly isEdit = computed(() => this.companyId() !== null);
   protected readonly isActive = computed(() => this.company()?.isActive ?? true);
 
@@ -233,6 +365,7 @@ export class CompanyFormPageComponent {
             this.notFound.set(apiError.status === 404 ? 'Empresa não encontrada (ou desativada).' : apiError.message);
           },
         });
+      this.loadRecruiters(id as number);
     } else {
       this.loading.set(false);
     }
@@ -332,6 +465,72 @@ export class CompanyFormPageComponent {
         this.formErrorDetail.set(apiError.fieldErrors?.join(' • ') ?? null);
       },
     });
+  }
+
+  private loadRecruiters(companyId: number): void {
+    this.recruitersLoading.set(true);
+    this.usersService
+      .list({ companyId, page: 1, limit: 100 })
+      .pipe(take(1), catchError(() => of<Paginated<UserSummary> | null>(null)))
+      .subscribe((page) => {
+        this.recruitersLoading.set(false);
+        this.companyRecruiters.set(page?.data ?? []);
+      });
+  }
+
+  protected openLink(): void {
+    this.linkError.set(null);
+    this.linkForm.reset({ userId: null });
+    this.linkOpen.set(true);
+    this.usersService
+      .list({ role: 'RECRUITER', page: 1, limit: 100 })
+      .pipe(take(1), catchError(() => of<Paginated<UserSummary> | null>(null)))
+      .subscribe((page) => this.linkCandidates.set(page?.data ?? []));
+  }
+
+  protected confirmLink(): void {
+    const userId = this.linkForm.getRawValue().userId;
+    const companyId = this.companyId();
+    if (!userId || !companyId || this.linkBusy()) return;
+
+    this.linkBusy.set(true);
+    this.linkError.set(null);
+    this.usersService
+      .changeCompany(userId, companyId)
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          this.linkBusy.set(false);
+          this.linkOpen.set(false);
+          this.toasts.success('Recrutador vinculado.', 'Com ele vinculado, a empresa entra nas listas descobríveis.');
+          this.loadRecruiters(companyId);
+        },
+        error: (apiError: ApiError) => {
+          this.linkBusy.set(false);
+          this.linkError.set(apiError.message);
+        },
+      });
+  }
+
+  protected unlink(recruiter: UserSummary): void {
+    const companyId = this.companyId();
+    if (!companyId || this.linkBusy()) return;
+
+    this.linkBusy.set(true);
+    this.usersService
+      .changeCompany(recruiter.id, null)
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          this.linkBusy.set(false);
+          this.toasts.success(`${recruiter.name} foi desvinculado desta empresa.`);
+          this.loadRecruiters(companyId);
+        },
+        error: (apiError: ApiError) => {
+          this.linkBusy.set(false);
+          this.linkError.set(apiError.message);
+        },
+      });
   }
 
   private previewFrom(company: Company): string | null {
