@@ -209,7 +209,7 @@ import { IconComponent } from '../../../shared/ui/icon';
               </div>
             </div>
 
-            <form class="upload" (ngSubmit)="upload($event)" novalidate>
+            <form class="upload" (submit)="onUploadSubmit($event)" novalidate>
               <div class="field">
                 <label class="field__label" for="documentType">Tipo</label>
                 <select
@@ -666,10 +666,20 @@ export class ProfilePageComponent {
     this.previewUrl.set(null);
   }
 
-  protected upload(event: Event): void {
+  /**
+   * Sem preventDefault aqui o browser faz o submit default (reload + scroll pro
+   * topo) e o POST /documents NUNCA sai — foi exatamente o bug reportado
+   * ("a página sobe" + "não salva no banco").
+   */
+  protected onUploadSubmit(event: Event): void {
     event.preventDefault();
+    this.upload();
+  }
+
+  protected upload(): void {
     const file = this.selectedFile();
     if (!file || this.uploading()) return;
+    this.uploadError.set(null);
 
     const validation = validateUpload(file);
     if (!validation.ok) {

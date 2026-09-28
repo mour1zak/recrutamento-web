@@ -791,12 +791,14 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
       ).click();
       await settle();
 
-      const select = host.nativeElement.querySelector('#roleId') as HTMLSelectElement;
-      const candidateOption = [...select.options].find((option) => option.textContent?.includes('CANDIDATE'));
-      select.value = candidateOption?.value ?? '';
-      select.dispatchEvent(new Event('change'));
+      const candidateCard = [...host.nativeElement.querySelectorAll('.role-option')].find((element: HTMLElement) =>
+        element.textContent?.includes('CANDIDATE'),
+      ) as HTMLElement;
+      expect(candidateCard).toBeTruthy();
+      candidateCard.click();
       await settle();
 
+      expect(candidateCard.classList.contains('role-option--selected')).toBe(true);
       clickModalConfirm(host, 'Salvar');
       const request = controller.expectOne(url('users/2/role'));
       expect(request.request.body).toEqual({ roleId: 1 });

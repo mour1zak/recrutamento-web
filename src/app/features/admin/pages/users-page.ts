@@ -221,12 +221,24 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
             />
           }
           <div class="field">
-            <label class="field__label" for="roleId">Novo papel</label>
-            <select id="roleId" class="select" formControlName="roleId">
+            <span class="field__label">Novo papel</span>
+            <div class="role-picker" role="radiogroup" aria-label="Novo papel">
               @for (role of roles(); track role.id) {
-                <option [ngValue]="role.id">{{ roleLabel(role.name) }} — {{ role.name }}</option>
+                <button
+                  type="button"
+                  class="role-option"
+                  [class.role-option--selected]="roleForm.controls.roleId.value === role.id"
+                  [attr.aria-pressed]="roleForm.controls.roleId.value === role.id"
+                  (click)="roleForm.controls.roleId.setValue(role.id)"
+                >
+                  <span class="role-option__radio" aria-hidden="true"></span>
+                  <span class="role-option__text">
+                    <span class="role-option__name">{{ roleLabel(role.name) }}</span>
+                    <span class="role-option__meta">{{ role.name }} · {{ role.permissions.length }} permissão(ões)</span>
+                  </span>
+                </button>
               }
-            </select>
+            </div>
             <span class="field__hint">
               A mudança vale na hora, sem necessidade de novo login.
             </span>
@@ -288,6 +300,67 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
   `,
   styles: [
     `
+      .role-picker {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+      }
+
+      .role-option {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+        padding: var(--space-3) var(--space-4);
+        border: 1px solid var(--color-border-strong);
+        border-radius: var(--radius);
+        background: var(--color-surface);
+        cursor: pointer;
+        font: inherit;
+        text-align: left;
+        transition:
+          border-color 120ms ease,
+          background 120ms ease;
+      }
+
+      .role-option:hover {
+        border-color: var(--color-primary);
+      }
+
+      .role-option--selected {
+        border-color: var(--color-primary);
+        background: var(--color-primary-soft);
+      }
+
+      .role-option__radio {
+        width: 16px;
+        height: 16px;
+        flex: none;
+        border-radius: 50%;
+        border: 2px solid var(--color-border-strong);
+        background: var(--color-surface);
+      }
+
+      .role-option--selected .role-option__radio {
+        border-color: var(--color-primary);
+        background: radial-gradient(circle, var(--color-primary) 0 45%, transparent 50%);
+      }
+
+      .role-option__text {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+
+      .role-option__name {
+        font-weight: 600;
+        font-size: 0.875rem;
+      }
+
+      .role-option__meta {
+        font-size: 0.75rem;
+        color: var(--color-text-muted);
+      }
+
       .filters {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
@@ -437,6 +510,9 @@ export class UsersPageComponent {
         this.confirmTarget.set(null);
         this.patchRow(updated);
         this.toasts.success(updated.isActive ? 'Usuário reativado.' : 'Usuário desativado.');
+        // Cinturão duplo: além do patch otimista da linha, reconsulta a página
+        // atual em silêncio para garantir consistência com o servidor.
+        this.refreshSilently();
       },
       error: (apiError: ApiError) => {
         this.busy.set(false);
@@ -506,6 +582,21 @@ export class UsersPageComponent {
           this.busy.set(false);
           this.actionError.set(apiError.message);
         },
+      });
+  }
+
+  private refreshSilently(): void {
+    this.usersService
+      .list({
+        page: this.result()?.page ?? 1,
+        limit: this.result()?.limit ?? 10,
+        role: this.roleFilter() || undefined,
+        companyId: this.companyFilter() ? Number(this.companyFilter()) : undefined,
+        isActive: this.activeFilter() === '' ? undefined : this.activeFilter() === 'true',
+      })
+      .pipe(take(1), catchError(() => of<Paginated<UserSummary> | null>(null)))
+      .subscribe((page) => {
+        if (page) this.result.set(page);
       });
   }
 
