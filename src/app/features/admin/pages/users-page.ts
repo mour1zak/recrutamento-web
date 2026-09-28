@@ -285,13 +285,37 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
       >
         <form class="form" [formGroup]="companyForm" (ngSubmit)="confirmCompany()" novalidate>
           <div class="field">
-            <label class="field__label" for="companyId">Empresa</label>
-            <select id="companyId" class="select" formControlName="companyId">
-              <option [ngValue]="null">Sem vínculo</option>
-              @for (company of companies(); track company.id) {
-                <option [ngValue]="company.id">{{ company.name }} (#{{ company.id }})</option>
-              }
-            </select>
+            <span class="field__label">Empresa</span>
+            @if (companyMode() === 'list') {
+              <select id="companyId" class="select" formControlName="companyId" (change)="onCompanySelectChange($event)">
+                <option [ngValue]="null">Sem vínculo</option>
+                @for (company of companies(); track company.id) {
+                  <option [ngValue]="company.id">{{ company.name }} (#{{ company.id }})</option>
+                }
+                <option value="manual">Outra empresa (informar o código)…</option>
+              </select>
+              <span class="field__hint">
+                A lista mostra as empresas com vagas ou recrutadores vinculados. Empresa recém-criada ainda não
+                aparece aqui — use o código dela.
+              </span>
+            } @else {
+              <div class="input-group">
+                <input
+                  id="companyIdManual"
+                  class="input"
+                  type="number"
+                  min="1"
+                  step="1"
+                  formControlName="manualCompanyId"
+                  placeholder="Código da empresa (ex.: 14)"
+                />
+                <button type="button" class="btn" (click)="backToListMode()">Usar a lista</button>
+              </div>
+              <span class="field__hint">
+                O código aparece na coluna "#" da tela de Empresas e na confirmação de criação. Se não existir, o
+                vínculo é recusado.
+              </span>
+            }
             <span class="field__hint">
               Sem vínculo, o recrutador não consegue criar nem listar vagas.
             </span>
@@ -431,7 +455,12 @@ export class UsersPageComponent {
   protected readonly companyTarget = signal<UserSummary | null>(null);
 
   protected readonly roleForm = this.fb.group({ roleId: this.fb.control<number | null>(null) });
-  protected readonly companyForm = this.fb.group({ companyId: this.fb.control<number | null>(null) });
+  protected readonly companyForm = this.fb.group({
+    companyId: this.fb.control<number | null | string>(null),
+    manualCompanyId: this.fb.control<number | null>(null),
+  });
+  /** 'list' = empresas descobríveis; 'manual' = vínculo por código (rota real do backend). */
+  protected readonly companyMode = signal<'list' | 'manual'>('list');
 
   protected readonly currentUserId = computed(() => this.auth.user()?.id ?? null);
 
@@ -589,15 +618,43 @@ export class UsersPageComponent {
 
   protected openCompany(user: UserSummary): void {
     this.actionError.set(null);
-    this.companyForm.reset({ companyId: user.companyId });
+    this.companyMode.set('list');
+    this.companyForm.reset({ companyId: user.companyId, manualCompanyId: null });
     this.companyTarget.set(user);
+  }
+
+  protected onCompanySelectChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    if (value === 'manual') {
+      this.companyMode.set('manual');
+      this.companyForm.controls.companyId.setValue(null);
+    }
+  }
+
+  protected backToListMode(): void {
+    this.companyMode.set('list');
+    this.companyForm.controls.manualCompanyId.setValue(null);
   }
 
   protected confirmCompany(): void {
     const user = this.companyTarget();
     if (!user || this.busy()) return;
+
+    const raw = this.companyForm.getRawValue();
     // `companyId` é obrigatório no corpo (pode ser `null` para desvincular).
-    const companyId = this.companyForm.getRawValue().companyId;
+    // No modo manual, o código informado pelo admin é validado aqui e conferido
+    // pelo backend (404 company_not_found se não existir).
+    const companyId =
+      this.companyMode() === 'manual'
+        ? raw.manualCompanyId
+        : raw.companyId === 'manual'
+          ? null
+          : (raw.companyId as number | null);
+
+    if (this.companyMode() === 'manual' && (companyId === null || !Number.isInteger(companyId) || companyId < 1)) {
+      this.actionError.set('Informe o código numérico da empresa (coluna "#" da tela de Empresas).');
+      return;
+    }
 
     this.busy.set(true);
     this.actionError.set(null);

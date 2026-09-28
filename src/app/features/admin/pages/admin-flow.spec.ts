@@ -840,6 +840,43 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
       await settle();
     });
 
+    it('vínculo por código: empresa fora da lista é informada pelo id e o backend valida', async () => {
+      const host = await bootstrapUsers(await render());
+
+      const recruiterRow = [...host.nativeElement.querySelectorAll('tbody tr')].find((row: HTMLElement) =>
+        row.textContent?.includes('recrutador@recrutamento.test'),
+      ) as HTMLElement;
+      ([...recruiterRow.querySelectorAll('button')].find((button: HTMLButtonElement) =>
+        button.textContent?.includes('Empresa'),
+      ) as HTMLButtonElement).click();
+      await settle();
+
+      // troca para o modo manual pelo próprio select
+      const select = host.nativeElement.querySelector('#companyId') as HTMLSelectElement;
+      select.value = 'manual';
+      select.dispatchEvent(new Event('change'));
+      await settle();
+
+      const manual = host.nativeElement.querySelector('#companyIdManual') as HTMLInputElement;
+      expect(manual).toBeTruthy();
+      manual.value = '14';
+      manual.dispatchEvent(new Event('input'));
+      await settle();
+
+      clickModalConfirm(host, 'Salvar');
+
+      const request = controller.expectOne(url('users/2/company'));
+      expect(request.request.body).toEqual({ companyId: 14 });
+      request.flush(
+        { statusCode: 404, reason: 'company_not_found', message: 'Empresa não encontrada.' },
+        { status: 404, statusText: 'Not Found' },
+      );
+      await settle();
+
+      // o backend é a autoridade: código inexistente → erro traduzido no diálogo
+      expect(textOf(host)).toContain('Empresa não encontrada');
+    });
+
     it('filtro por papel vai como ?role para o backend', async () => {
       const host = await bootstrapUsers(await render());
 

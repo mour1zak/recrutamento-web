@@ -133,21 +133,39 @@ import { LoadingComponent } from '../../../shared/ui/loading';
 
           @if (isAdmin()) {
             <div class="field">
-              <label class="field__label" for="companyId">Empresa dona da vaga <span class="required">*</span></label>
-              <select id="companyId" class="select" formControlName="companyId" [disabled]="isEdit()">
-                <option [ngValue]="null">Selecione…</option>
-                @for (company of companies(); track company.id) {
-                  <option [ngValue]="company.id">{{ company.name }} (#{{ company.id }})</option>
-                }
-              </select>
+              <span class="field__label">Empresa dona da vaga <span class="required">*</span></span>
+              @if (companyMode() === 'list') {
+                <select id="companyId" class="select" formControlName="companyId" [disabled]="isEdit()" (change)="onCompanySelectChange($event)">
+                  <option [ngValue]="null">Selecione…</option>
+                  @for (company of companies(); track company.id) {
+                    <option [ngValue]="company.id">{{ company.name }} (#{{ company.id }})</option>
+                  }
+                  <option value="manual">Outra empresa (informar o código)…</option>
+                </select>
+              } @else {
+                <div class="input-group">
+                  <input
+                    id="companyIdManual"
+                    class="input"
+                    type="number"
+                    min="1"
+                    step="1"
+                    formControlName="manualCompanyId"
+                    placeholder="Código da empresa (ex.: 14)"
+                    [disabled]="isEdit()"
+                  />
+                  <button type="button" class="btn" (click)="backToListMode()" [disabled]="isEdit()">Usar a lista</button>
+                </div>
+              }
               <span class="field__hint">
-                Administradores criam vaga para qualquer empresa; recrutadores criam sempre na própria.
+                Administradores criam vaga para qualquer empresa; recrutadores criam sempre na própria. A lista mostra
+                as empresas descobríveis; uma empresa recém-criada entra pelo código (coluna "#" da tela de Empresas).
                 @if (isEdit()) {
                   A empresa dona de uma vaga existente não pode ser trocada.
                 }
               </span>
               @if (invalid('companyId')) {
-                <span class="field__error">Selecione a empresa.</span>
+                <span class="field__error">Selecione a empresa ou informe o código.</span>
               }
             </div>
           }
@@ -202,8 +220,10 @@ export class JobFormPageComponent {
     salaryMin: this.fb.control<number | null>(null, [Validators.min(0), Validators.max(100_000_000)]),
     salaryMax: this.fb.control<number | null>(null, [Validators.min(0), Validators.max(100_000_000)]),
     isRemote: this.fb.control(false, [Validators.required]),
-    companyId: this.fb.control<number | null>(null),
+    companyId: this.fb.control<number | null | string>(null),
+    manualCompanyId: this.fb.control<number | null>(null),
   });
+  protected readonly companyMode = signal<'list' | 'manual'>('list');
 
   constructor() {
     const idParam = this.route.snapshot.paramMap.get('jobId');
@@ -258,6 +278,18 @@ export class JobFormPageComponent {
     }
   }
 
+  protected onCompanySelectChange(event: Event): void {
+    if ((event.target as HTMLSelectElement).value === 'manual') {
+      this.companyMode.set('manual');
+      this.form.controls.companyId.setValue(null);
+    }
+  }
+
+  protected backToListMode(): void {
+    this.companyMode.set('list');
+    this.form.controls.manualCompanyId.setValue(null);
+  }
+
   protected invalid(control: 'title' | 'description' | 'vacancies' | 'companyId'): boolean {
     const field = this.form.controls[control];
     return field.invalid && (field.dirty || field.touched || this.saving());
@@ -295,9 +327,22 @@ export class JobFormPageComponent {
       return;
     }
 
-    if (!this.isEdit() && this.isAdmin() && !value.companyId) {
-      this.formError.set('Selecione a empresa dona da vaga.');
-      return;
+    let companyId: number | null = null;
+    if (this.isAdmin() && !this.isEdit()) {
+      if (this.companyMode() === 'manual') {
+        const manual = value.manualCompanyId;
+        if (manual === null || !Number.isInteger(manual) || manual < 1) {
+          this.formError.set('Informe o código numérico da empresa dona da vaga.');
+          return;
+        }
+        companyId = manual;
+      } else {
+        companyId = value.companyId === 'manual' ? null : (value.companyId as number | null);
+      }
+      if (!companyId) {
+        this.formError.set('Selecione a empresa dona da vaga (ou informe o código).');
+        return;
+      }
     }
 
     this.saving.set(true);
@@ -315,7 +360,7 @@ export class JobFormPageComponent {
       ? this.jobsService.updateJob(this.jobId() as number, payload)
       : this.jobsService.createJob({
           ...payload,
-          companyId: this.isAdmin() ? value.companyId : undefined,
+          companyId: this.isAdmin() ? companyId : undefined,
         });
 
     request.pipe(take(1)).subscribe({
