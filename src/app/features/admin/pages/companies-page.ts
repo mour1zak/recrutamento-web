@@ -151,7 +151,7 @@ export class CompaniesPageComponent {
     this.loading.set(true);
     this.error.set(null);
     this.directory
-      .discoverCompanies()
+      .discoverAllCompanies()
       .pipe(take(1))
       .subscribe({
         next: (companies) => {

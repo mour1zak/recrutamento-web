@@ -1,31 +1,39 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { Observable, catchError, forkJoin, map, of, switchMap, tap } from 'rxjs';
 import { ApiClient } from '../http/api-client';
-import type { Company, Paginated, PublicJob, UserSummary } from '../models';
+import type { Company, Paginated, UserSummary } from '../models';
+
+/** Quantos 404s consecutivos encerram a varredura de ids de empresa. */
+const PROBE_STOP_AFTER = 8;
+/** Janela de ids investigada acima do maior id já conhecido. */
+const PROBE_WINDOW = 12;
+/** Tamanho do lote paralelo de consulta durante a varredura. */
+const PROBE_BATCH = 8;
 
 /**
- * Cache de nomes de empresa.
+ * Cache de nomes de empresa + descoberta de empresas.
  *
- * Motivo: várias rotas devolvem só `companyId` (ex.: `job` dentro de uma
- * candidatura) e o backend não tem listagem pública de empresas — apenas
- * `GET /companies/:id` (JWT + `company:read`). Este serviço resolve cada id uma
- * única vez por sessão para a UI conseguir mostrar "Empresa X" em vez de um
- * número cru. Falha vira string vazia (a tela mostra "—" sem quebrar).
+ * O backend não expõe `GET /companies` (lista) — apenas `GET /companies/:id`.
+ * Duas estratégias complementares, ambas só com rotas que existem:
+ *
+ * - `discoverCompanies()` (barata): ids que aparecem em `GET /jobs/mine`
+ *   (ADMIN vê todas as vagas) e `GET /users` (`companyId` dos recrutadores);
+ * - `discoverAllCompanies()` (completa, telas de gestão): além desses ids,
+ *   varre a faixa `1..maiorId+12` consultando por id, em lotes paralelos, e
+ *   para após 8 404s consecutivos. É assim que uma empresa recém-criada —
+ *   que ainda não tem vagas nem recrutadores — aparece na lista depois de
+ *   um reload (o registro em sessão cobre o intervalo entre criar e recarregar).
+ *
+ * Empresas criadas nesta sessão ficam registradas (`register`) e entram em
+ * qualquer uma das duas descobertas sem depender do backend.
  */
 @Injectable({ providedIn: 'root' })
 export class CompanyDirectoryService {
-  private readonly api = inject(ApiClient);
+  readonly api = inject(ApiClient);
+
   private readonly cache = signal<Record<number, string>>({});
 
-  /**
-   * Empresas criadas NESTA sessão.
-   *
-   * Motivo: a descoberta por id só enxerga empresas que já têm vagas ou
-   * usuários vinculados — uma empresa recém-criada ainda não tem nenhum dos
-   * dois, então ela sumiria dos seletores ("criei e não aparece no filtro da
-   * vaga"). O registro em sessão fecha esse buraco até o backend expor uma
-   * listagem própria.
-   */
+  /** Empresas criadas/conhecidas nesta sessão (não dependem de descoberta). */
   private readonly registered = signal<Company[]>([]);
 
   readonly names = this.cache.asReadonly();
@@ -61,16 +69,6 @@ export class CompanyDirectoryService {
     );
   }
 
-  /**
-   * Descobre as empresas cadastradas.
-   *
-   * O backend não tem `GET /companies` (apenas `GET /companies/:id`), então a
-   * lista é montada a partir dos ids que aparecem em rotas que o ADMIN lê:
-   * `GET /jobs/mine` (ADMIN vê as vagas de todas as empresas) e `GET /users`
-   * (`companyId` dos recrutadores). Limitação honesta: uma empresa sem vagas e
-   * sem recrutadores vinculados não aparece aqui — mas ela também não tem nada
-   * para gerenciar, e o ADMIN pode consultá-la pelo id em `/admin/companies/:id/edit`.
-   */
   /** Registra uma empresa criada/agora conhecida (idempotente por id). */
   register(company: Company): void {
     this.registered.update((current) => {
@@ -80,19 +78,20 @@ export class CompanyDirectoryService {
     this.cache.update((current) => ({ ...current, [company.id]: company.name }));
   }
 
+  /** Descoberta barata: ids presentes em vagas e usuários + registradas. */
   discoverCompanies(): Observable<Company[]> {
     return forkJoin({
       jobs: this.api
-        .get<Paginated<PublicJob & { companyId?: number }>>('jobs/mine', { page: 1, limit: 100 })
-        .pipe(catchError(() => of({ data: [] as PublicJob[] }))),
+        .get<Paginated<Company & { companyId?: number }>>('jobs/mine', { page: 1, limit: 100 })
+        .pipe(catchError(() => of({ data: [] as unknown[] } as Paginated<Company & { companyId?: number }>))),
       users: this.api
         .get<Paginated<UserSummary>>('users', { page: 1, limit: 100 })
-        .pipe(catchError(() => of({ data: [] as UserSummary[] }))),
+        .pipe(catchError(() => of({ data: [] as UserSummary[] } as Paginated<UserSummary>))),
     }).pipe(
       map(({ jobs, users }) => {
         const ids = new Set<number>();
         jobs.data.forEach((job) => {
-          const companyId = (job as { companyId?: number }).companyId ?? job.company?.id;
+          const companyId = (job as { companyId?: number }).companyId ?? job.id;
           if (companyId) ids.add(companyId);
         });
         users.data.forEach((user) => {
@@ -100,21 +99,75 @@ export class CompanyDirectoryService {
         });
         return [...ids].sort((a, b) => a - b);
       }),
-      switchMap((ids) =>
-        ids.length === 0
-          ? of([] as Company[])
-          : forkJoin(ids.map((id) => this.api.get<Company>(`companies/${id}`).pipe(catchError(() => of(null))))).pipe(
-              map((companies) => companies.filter((company): company is Company => company !== null)),
-            ),
-      ),
-      tap((companies) => {
-        // Aproveita para aquecer o cache de nomes.
-        const next = { ...this.cache() };
-        companies.forEach((company) => {
-          next[company.id] = company.name;
-        });
-        this.cache.set(next);
+      switchMap((ids) => {
+        const registered = this.registered();
+        const registeredIds = new Set(registered.map((company) => company.id));
+        const toFetch = ids.filter((id) => !registeredIds.has(id));
+
+        if (toFetch.length === 0) return of(registered);
+
+        return forkJoin(
+          toFetch.map((id) => this.api.get<Company>(`companies/${id}`).pipe(catchError(() => of(null)))),
+        ).pipe(
+          map(
+            (companies) =>
+              // Registradas primeiro: empresa recém-criada aparece no topo.
+              [...registered, ...companies.filter((company): company is Company => company !== null)],
+          ),
+        );
       }),
+      tap((companies) => this.warmCache(companies)),
+    );
+  }
+
+  /**
+   * Descoberta completa para telas de gestão (ADMIN): descoberta barata +
+   * varredura de faixa de ids até 8 404s consecutivos, em lotes de 8.
+   */
+  discoverAllCompanies(): Observable<Company[]> {
+    return this.discoverCompanies().pipe(
+      switchMap((seeded) => {
+        const known = new Map<number, Company>();
+        [...this.registered(), ...seeded].forEach((company) => known.set(company.id, company));
+
+        const maxSeed = seeded.length ? Math.max(...seeded.map((company) => company.id)) : 0;
+        const ceiling = maxSeed + PROBE_WINDOW;
+        const candidates: number[] = [];
+        for (let id = 1; id <= ceiling; id += 1) {
+          if (!known.has(id)) candidates.push(id);
+        }
+
+        const probe = (index: number, consecutive: number): Observable<Map<number, Company>> => {
+          if (index >= candidates.length || consecutive >= PROBE_STOP_AFTER) {
+            return of(known);
+          }
+          const chunk = candidates.slice(index, index + PROBE_BATCH);
+          return forkJoin(
+            chunk.map((id) =>
+              this.api.get<Company>(`companies/${id}`).pipe(
+                map((company) => ({ company: company as Company | null })),
+                catchError(() => of({ company: null })),
+              ),
+            ),
+          ).pipe(
+            switchMap((results) => {
+              let nextConsecutive = consecutive;
+              results.forEach(({ company }) => {
+                if (company) {
+                  known.set(company.id, company);
+                  nextConsecutive = 0;
+                } else {
+                  nextConsecutive += 1;
+                }
+              });
+              return probe(index + chunk.length, nextConsecutive);
+            }),
+          );
+        };
+
+        return probe(0, 0).pipe(map((mapById) => [...mapById.values()].sort((a, b) => a.id - b.id)));
+      }),
+      tap((companies) => this.warmCache(companies)),
     );
   }
 
@@ -122,6 +175,14 @@ export class CompanyDirectoryService {
   invalidate(id: number): void {
     const next = { ...this.cache() };
     delete next[id];
+    this.cache.set(next);
+  }
+
+  private warmCache(companies: Company[]): void {
+    const next = { ...this.cache() };
+    companies.forEach((company) => {
+      next[company.id] = company.name;
+    });
     this.cache.set(next);
   }
 }

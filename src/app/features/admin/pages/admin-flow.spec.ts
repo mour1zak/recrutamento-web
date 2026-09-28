@@ -89,6 +89,22 @@ function clickModalConfirm(fixture: { nativeElement: HTMLElement }, label: strin
   clickButton(fixture, label, '.modal__footer');
 }
 
+/** Zera a varredura de ids de empresa (404 em lote) até não sobrar pendência. */
+function flushCompanyProbes(controller: HttpTestingController): void {
+  for (let round = 0; round < 6; round += 1) {
+    const pending = controller.match(
+      (request) => /\/companies\/\d+$/.test(request.url) && !request.url.endsWith('/companies/1'),
+    );
+    if (pending.length === 0) return;
+    pending.forEach((request) =>
+      request.flush(
+        { statusCode: 404, error: 'Not Found', reason: 'company_not_found', message: 'Empresa não encontrada.' },
+        { status: 404, statusText: 'Not Found' },
+      ),
+    );
+  }
+}
+
 /** Responde todas as requisições pendentes de uma URL com o mesmo corpo. */
 type FlushBody = string | number | boolean | object | ArrayBuffer | Blob | null;
 
@@ -510,6 +526,8 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
         updatedAt: '2026-09-01T12:00:00.000Z',
       });
       await settle();
+      flushCompanyProbes(controller);
+      await settle();
 
       expect(textOf(host)).toContain('Tech Solutions Ltda');
       expect(textOf(host)).toContain('Avenida Paulista — São Paulo — SP · CEP 01310-100');
@@ -559,6 +577,8 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
         isActive: true,
         createdAt: '2026-09-01T12:00:00.000Z',
       });
+      await settle();
+      flushCompanyProbes(controller);
       await settle();
 
       clickButton(host, 'Desativar');
@@ -670,6 +690,8 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
       flushAll(controller, url('users?page=1&limit=10'), USERS_PAGE);
       await settle();
       flushAll(controller, url('companies/1'), { id: 1, name: 'Tech Solutions Ltda', isActive: true });
+      await settle();
+      flushCompanyProbes(controller);
       await settle();
       return host;
     }
@@ -811,6 +833,34 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
       expect(textOf(host)).toContain('ainda tem vagas ativas');
     });
 
+    it('único admin ativo: diálogo de papel bloqueia a demovção antes de chamar a API', async () => {
+      const host = await bootstrapUsers(await render());
+
+      const adminRow = [...host.nativeElement.querySelectorAll('tbody tr')].find((row: HTMLElement) =>
+        row.textContent?.includes('admin@recrutamento.test'),
+      ) as HTMLElement;
+      ([...adminRow.querySelectorAll('button')].find((button: HTMLButtonElement) =>
+        button.textContent?.trim() === 'Papel',
+      ) as HTMLButtonElement).click();
+      await settle();
+
+      controller
+        .expectOne(url('users?page=1&limit=1&role=ADMIN&isActive=true'))
+        .flush({ data: [USERS_PAGE.data[0]], page: 1, limit: 1, total: 1 });
+      await settle();
+
+      expect(textOf(host)).toContain('único administrador ativo');
+      const recruiterCard = [...host.nativeElement.querySelectorAll('.role-option')].find((element: HTMLElement) =>
+        element.textContent?.includes('RECRUITER'),
+      ) as HTMLButtonElement;
+      expect(recruiterCard.disabled).toBe(true);
+
+      // nada de chamada de troca de papel: o bloqueio é de cliente
+      expect(controller.match(url('users/1/role'))).toHaveLength(0);
+      clickButton(host, 'Cancelar');
+      await settle();
+    });
+
     it('filtro por papel vai como ?role para o backend', async () => {
       const host = await bootstrapUsers(await render());
 
@@ -824,6 +874,8 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
       request.flush({ ...USERS_PAGE, data: [USERS_PAGE.data[1]], total: 1 });
       await settle();
       flushAll(controller, url('companies/1'), { id: 1, name: 'Tech Solutions Ltda', isActive: true });
+      await settle();
+      flushCompanyProbes(controller);
       await settle();
 
       expect(textOf(host)).toContain('1 usuário(s)');

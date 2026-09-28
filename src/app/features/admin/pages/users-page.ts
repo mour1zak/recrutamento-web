@@ -228,6 +228,8 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
                   type="button"
                   class="role-option"
                   [class.role-option--selected]="roleForm.controls.roleId.value === role.id"
+                  [class.role-option--disabled]="soleActiveAdmin() && role.name === 'ADMIN' === false"
+                  [disabled]="soleActiveAdmin() && role.name !== 'ADMIN'"
                   [attr.aria-pressed]="roleForm.controls.roleId.value === role.id"
                   (click)="roleForm.controls.roleId.setValue(role.id)"
                 >
@@ -242,6 +244,15 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
             <span class="field__hint">
               A mudança vale na hora, sem necessidade de novo login.
             </span>
+            @if (soleActiveAdmin()) {
+              <div class="alert alert--warning">
+                <span class="alert__icon" aria-hidden="true">!</span>
+                <div class="alert__body">
+                  Este usuário é o único administrador ativo da plataforma. Por segurança, o sistema não permite
+                  tirá-lo da administração: promova outro administrador antes de trocar o papel dele.
+                </div>
+              </div>
+            }
           </div>
 
           @if (user.role.name === 'RECRUITER') {
@@ -331,6 +342,15 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
         background: var(--color-primary-soft);
       }
 
+      .role-option--disabled {
+        opacity: 0.55;
+        cursor: not-allowed;
+      }
+
+      .role-option--disabled:hover {
+        border-color: var(--color-border-strong);
+      }
+
       .role-option__radio {
         width: 16px;
         height: 16px;
@@ -396,6 +416,11 @@ export class UsersPageComponent {
   protected readonly companies = signal<Company[]>([]);
   /** Catálogo de papéis indisponível (ex.: permissão `role:manage` removida). */
   protected readonly rolesUnavailable = signal(false);
+  /**
+   * O alvo é o ÚNICO administrador ativo: o backend recusa tirar ele da
+   * administração (`409 last_active_admin`). A UI bloqueia ANTES de chamar.
+   */
+  protected readonly soleActiveAdmin = signal(false);
 
   protected readonly roleFilter = signal('');
   protected readonly companyFilter = signal('');
@@ -526,6 +551,15 @@ export class UsersPageComponent {
     this.actionError.set(null);
     this.roleForm.reset({ roleId: user.roleId });
     this.roleTarget.set(user);
+    this.soleActiveAdmin.set(false);
+
+    if (user.role.name === 'ADMIN') {
+      // Quantos admins ativos existem? Se for só este, demovê-lo é recusado.
+      this.usersService
+        .list({ role: 'ADMIN', isActive: true, page: 1, limit: 1 })
+        .pipe(take(1), catchError(() => of<Paginated<UserSummary> | null>(null)))
+        .subscribe((page) => this.soleActiveAdmin.set(page?.total === 1));
+    }
   }
 
   protected confirmRole(): void {
