@@ -31,7 +31,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
         </div>
 
         <span class="site-footer__copy">
-          © 2026 LinklDoor. Encontre a vaga certa. Contrate a pessoa certa.
+          © 2026 Gipper. Encontre a vaga certa. Contrate a pessoa certa.
         </span>
       </div>
     </footer>
