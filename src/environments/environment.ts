@@ -19,7 +19,7 @@ export const environment = {
   apiUrl: 'http://localhost:3000',
   apiKey: 'DEFINA_SUA_API_KEY_NO_START_LOCAL',
   /** Nome exibido no cabeçalho/rodapé. */
-  appName: 'LinklDoor',
+  appName: 'Gipper',
   /**
    * Contas de demonstração (opcional). Quando preenchidas, a tela de login
    * mostra um painel "contas deste ambiente" com botão de preenchimento
@@ -29,7 +29,7 @@ export const environment = {
    */
   demoAccounts: [
     { role: 'CANDIDATE', label: 'Candidato (seed)', email: 'candidato@recrutamento.test', password: 'Senha@123' },
-    { role: 'RECRUITER', label: 'LinklDoordor (seed)', email: 'recrutador@recrutamento.test', password: 'Senha@123' },
+    { role: 'RECRUITER', label: 'Gipperdor (seed)', email: 'recrutador@recrutamento.test', password: 'Senha@123' },
     { role: 'ADMIN', label: 'Administrador (seed)', email: 'admin@recrutamento.test', password: 'Senha@123' },
   ] as { role: string; label: string; email: string; password: string }[],
 };

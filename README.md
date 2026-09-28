@@ -1,4 +1,4 @@
-# LinklDoor — Frontend Angular da Plataforma de LinklDoormento
+# Gipper — Frontend Angular (Digital Recruitment)
 
 Aplicação web (SPA) que consome a API [`recrutamento-api`](https://github.com/mour1zak/recrutamento-api) —
 NestJS + PostgreSQL + Prisma, com JWT, RBAC dinâmico, upload de currículo e
@@ -22,7 +22,8 @@ fingindo ser conteúdo.
 | Framework | **Angular 21 LTS** | `standalone` por padrão, `signals`, novo control flow (`@if`/`@for`), zoneless |
 | Reatividade | Signals + RxJS | Estado local em signals; HTTP em Observables (padrão do `HttpClient`) |
 | Change detection | `provideZonelessChangeDetection()` | Sem Zone.js: menos bundle, updates explícitos por signal |
-| UI | **CSS próprio com design tokens** (sem framework) | Zero dependência externa, funciona offline, tema consistente em `src/styles.css` |
+| UI | **CSS próprio com design tokens** (sem framework) | Paleta verde-profundo/creme/coral inspirada em template Figma de recrutamento; fontes Sora (títulos) + Inter (texto) via Google Fonts com fallback system-ui offline |
+| Marca | **Gipper — Digital Recruitment** | Lockup com marca própria (SVG inline: "G" branco em bloco verde + losango coral) no header, footer e landing |
 | Forms | `ReactiveFormsModule` | Validar no cliente as mesmas regras dos DTOs do backend |
 | Testes | **Vitest + jsdom** (via `@angular/build:unit-test`) + `HttpTestingController` | 131 testes cobrindo interceptors, guards, contratos HTTP e os 3 fluxos de negócio |
 | Build | `@angular/build:application` | Produz SPA estático; initial **310 kB (87 kB gzip)** |
@@ -297,7 +298,7 @@ Sequência testada de ponta a ponta (e coberta por testes automatizados):
    endereço) e **anexe um currículo** (PDF/DOC/DOCX até 5 MB).
 2. `/jobs` → abra uma vaga → **Candidatar-se** (carta + currículo anexado).
    Em `/candidate/applications` veja o badge **Em análise** e a trilha do funil.
-3. **LinklDoordor** — saia e entre com `recrutador@recrutamento.test`: o painel
+3. **Gipperdor** — saia e entre com `recrutador@recrutamento.test`: o painel
    mostra indicadores e a fila de triagem. Abra a candidatura: o cartão mostra a
    *visão de triagem* (nome/título/skills) enquanto está `PENDING`; mova para
    **Em avaliação** e o backend libera perfil completo + download do currículo.

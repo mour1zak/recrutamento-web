@@ -50,12 +50,22 @@ const NAV_ITEMS: NavItem[] = [
       <div class="container site-header__inner">
         <a class="brand" routerLink="/">
           <span class="brand__mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M4 7h16M4 12h10M4 17h7" stroke-linecap="round" />
-              <circle cx="18.5" cy="16.5" r="3.5" />
+            <svg viewBox="0 0 32 32" width="30" height="30">
+              <rect x="1" y="1" width="30" height="30" rx="9" fill="var(--color-primary)" />
+              <path
+                d="M22.4 12.2a6.5 6.5 0 1 0 1.7 6.6h-5.6"
+                fill="none"
+                stroke="#ffffff"
+                stroke-width="2.8"
+                stroke-linecap="square"
+              />
+              <path d="M24.3 5.1l2.7 2.7-2.7 2.7-2.7-2.7z" fill="var(--color-accent)" />
             </svg>
           </span>
-          <span class="brand__name">LinklDoor</span>
+          <span class="brand__text">
+            <span class="brand__name">Gipper</span>
+            <span class="brand__tag">Digital Recruitment</span>
+          </span>
         </a>
 
         <nav class="site-nav" aria-label="Navegação principal">
@@ -108,11 +118,15 @@ const NAV_ITEMS: NavItem[] = [
       .brand {
         display: inline-flex;
         align-items: center;
-        gap: 8px;
-        font-weight: 700;
-        font-size: 1.05rem;
+        gap: 10px;
         color: var(--color-text);
-        letter-spacing: -0.02em;
+      }
+
+      .brand__name {
+        font-family: var(--font-display);
+        font-weight: 800;
+        font-size: 1.15rem;
+        letter-spacing: -0.03em;
       }
 
       .brand:hover {
@@ -122,11 +136,21 @@ const NAV_ITEMS: NavItem[] = [
       .brand__mark {
         display: grid;
         place-items: center;
-        width: 30px;
-        height: 30px;
-        border-radius: 9px;
-        background: var(--color-primary);
-        color: #fff;
+        flex: none;
+      }
+
+      .brand__text {
+        display: flex;
+        flex-direction: column;
+        line-height: 1.05;
+      }
+
+      .brand__tag {
+        font-size: 8.5px;
+        font-weight: 600;
+        letter-spacing: 0.22em;
+        text-transform: uppercase;
+        color: var(--color-text-subtle);
       }
 
       .site-nav {

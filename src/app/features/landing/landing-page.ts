@@ -129,8 +129,8 @@ import { IconComponent } from '../../shared/ui/icon';
     `
       .hero {
         background:
-          radial-gradient(900px 420px at 12% -10%, rgb(79 70 229 / 14%), transparent 60%),
-          linear-gradient(180deg, #ffffff 0%, var(--color-bg) 100%);
+          radial-gradient(900px 420px at 12% -10%, rgb(47 85 72 / 12%), transparent 60%),
+          var(--color-bg);
         border-bottom: 1px solid var(--color-border);
         padding-block: var(--space-7);
       }
@@ -144,25 +144,27 @@ import { IconComponent } from '../../shared/ui/icon';
 
       .hero__eyebrow {
         display: inline-block;
-        font-size: 0.75rem;
+        font-size: 0.6875rem;
         font-weight: 700;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.14em;
         text-transform: uppercase;
-        color: var(--color-primary-hover);
-        background: var(--color-primary-soft);
+        color: var(--color-primary);
+        background: var(--color-surface);
+        border: 1px solid var(--color-border);
         border-radius: var(--radius-pill);
-        padding: 4px 12px;
+        padding: 6px 14px;
         margin-bottom: var(--space-4);
       }
 
       .hero h1 {
-        font-size: 2.4rem;
-        line-height: 1.15;
+        font-size: 2.6rem;
+        line-height: 1.12;
         letter-spacing: -0.03em;
+        font-weight: 800;
       }
 
       .hero__highlight {
-        color: var(--color-primary);
+        color: var(--color-accent);
       }
 
       .hero__subtitle {
@@ -199,11 +201,11 @@ import { IconComponent } from '../../shared/ui/icon';
       .mock {
         width: 100%;
         max-width: 380px;
-        background: var(--color-surface);
-        border: 1px solid var(--color-border);
+        background: var(--color-primary);
+        border: 1px solid var(--color-primary-hover);
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow-lg);
-        padding: var(--space-4);
+        padding: var(--space-5);
         display: flex;
         flex-direction: column;
         gap: var(--space-3);
@@ -218,19 +220,19 @@ import { IconComponent } from '../../shared/ui/icon';
         width: 10px;
         height: 10px;
         border-radius: 50%;
-        background: var(--color-border-strong);
+        background: rgb(255 255 255 / 35%);
       }
 
       .mock__row {
         height: 12px;
         border-radius: var(--radius-pill);
-        background: var(--color-surface-alt);
+        background: rgb(255 255 255 / 22%);
       }
 
       .mock__row--title {
         height: 18px;
         width: 70%;
-        background: var(--color-primary-soft);
+        background: rgb(255 255 255 / 38%);
       }
 
       .mock__row--short {
@@ -242,9 +244,14 @@ import { IconComponent } from '../../shared/ui/icon';
         gap: var(--space-2);
       }
 
-      .chip--ok {
-        background: var(--color-success-soft);
-        color: var(--color-success);
+      .mock .chip {
+        background: rgb(255 255 255 / 16%);
+        color: #fff;
+      }
+
+      .mock .chip--ok {
+        background: var(--color-highlight);
+        color: #182420;
       }
 
       .section {
@@ -264,7 +271,7 @@ import { IconComponent } from '../../shared/ui/icon';
       }
 
       .journey__icon {
-        color: var(--color-primary);
+        color: var(--color-accent);
       }
 
       .journey p {
@@ -274,9 +281,12 @@ import { IconComponent } from '../../shared/ui/icon';
       }
 
       .steps-band {
-        background: var(--color-surface);
-        border-block: 1px solid var(--color-border);
+        background: var(--color-primary);
         padding-block: var(--space-7);
+      }
+
+      .steps-band .section__title {
+        color: #fff;
       }
 
       .steps {
@@ -301,14 +311,19 @@ import { IconComponent } from '../../shared/ui/icon';
         height: 34px;
         flex: none;
         border-radius: 50%;
-        background: var(--color-primary);
-        color: #fff;
+        background: var(--color-highlight);
+        color: #182420;
+        font-family: var(--font-display);
         font-weight: 700;
+      }
+
+      .steps strong {
+        color: #fff;
       }
 
       .steps p {
         margin: 4px 0 0;
-        color: var(--color-text-muted);
+        color: rgb(255 255 255 / 75%);
         font-size: 0.875rem;
       }
 

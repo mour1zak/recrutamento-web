@@ -10,27 +10,27 @@ export const ADMIN_ROUTES: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'companies' },
       {
         path: 'companies',
-        title: 'Empresas — LinklDoor',
+        title: 'Empresas — Gipper',
         loadComponent: () => import('./pages/companies-page').then((m) => m.CompaniesPageComponent),
       },
       {
         path: 'companies/new',
-        title: 'Nova empresa — LinklDoor',
+        title: 'Nova empresa — Gipper',
         loadComponent: () => import('./pages/company-form-page').then((m) => m.CompanyFormPageComponent),
       },
       {
         path: 'companies/:id/edit',
-        title: 'Editar empresa — LinklDoor',
+        title: 'Editar empresa — Gipper',
         loadComponent: () => import('./pages/company-form-page').then((m) => m.CompanyFormPageComponent),
       },
       {
         path: 'users',
-        title: 'Usuários — LinklDoor',
+        title: 'Usuários — Gipper',
         loadComponent: () => import('./pages/users-page').then((m) => m.UsersPageComponent),
       },
       {
         path: 'roles',
-        title: 'Papéis e permissões — LinklDoor',
+        title: 'Papéis e permissões — Gipper',
         loadComponent: () => import('./pages/roles-page').then((m) => m.RolesPageComponent),
       },
     ],

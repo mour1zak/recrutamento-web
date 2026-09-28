@@ -8,12 +8,12 @@ import { Routes } from '@angular/router';
 export const JOBS_ROUTES: Routes = [
   {
     path: '',
-    title: 'Vagas abertas — LinklDoor',
+    title: 'Vagas abertas — Gipper',
     loadComponent: () => import('./pages/jobs-page').then((m) => m.JobsPageComponent),
   },
   {
     path: ':id',
-    title: 'Vaga — LinklDoor',
+    title: 'Vaga — Gipper',
     loadComponent: () => import('./pages/job-detail-page').then((m) => m.JobDetailPageComponent),
   },
 ];

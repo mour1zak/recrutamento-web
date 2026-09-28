@@ -90,11 +90,12 @@ function clickModalConfirm(fixture: { nativeElement: HTMLElement }, label: strin
 }
 
 /** Zera a varredura de ids de empresa (404 em lote) até não sobrar pendência. */
-function flushCompanyProbes(controller: HttpTestingController): void {
+function flushCompanyProbes(controller: HttpTestingController, options: { includeId1?: boolean } = {}): void {
   for (let round = 0; round < 6; round += 1) {
-    const pending = controller.match(
-      (request) => /\/companies\/\d+$/.test(request.url) && !request.url.endsWith('/companies/1'),
-    );
+    const pending = controller.match((request) => {
+      if (!/\/companies\/\d+$/.test(request.url)) return false;
+      return options.includeId1 ? true : !request.url.endsWith('/companies/1');
+    });
     if (pending.length === 0) return;
     pending.forEach((request) =>
       request.flush(
@@ -592,9 +593,11 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
         );
       await settle();
 
-      // recarrega a lista depois do conflito
+      // Recarga pós-conflito: sem seeds, a varredura de ids inclui o 1.
       flushAll(controller, url('jobs/mine?page=1&limit=100'), { data: [], page: 1, limit: 100, total: 0 });
       flushAll(controller, url('users?page=1&limit=100'), { data: [], page: 1, limit: 100, total: 0 });
+      await settle();
+      flushCompanyProbes(controller, { includeId1: true });
       await settle();
 
       expect(textOf(host)).toContain('Nenhuma empresa encontrada');

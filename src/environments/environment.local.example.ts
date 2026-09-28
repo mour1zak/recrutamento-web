@@ -12,7 +12,7 @@ export const environment = {
   production: false,
   apiUrl: 'http://localhost:3000',
   apiKey: 'COLE_AQUI_O_API_KEY_DO_SEU_ENV',
-  appName: 'LinklDoor',
+  appName: 'Gipper',
   // Desligado por padrão: expor emails/senhas de seed na tela de login é
   // vazamento de informação. Para uma DEMO controlada, preencha aqui (ou no
   // environment.local.ts, que não é versionado) e o painel volta a aparecer.

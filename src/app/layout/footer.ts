@@ -12,14 +12,21 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       <div class="container site-footer__inner">
         <div class="site-footer__brand">
           <span class="brand-mark" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.2">
-              <path d="M4 7h16M4 12h10M4 17h7" stroke-linecap="round" />
-              <circle cx="18.5" cy="16.5" r="3.5" />
+            <svg viewBox="0 0 32 32" width="26" height="26">
+              <rect x="1" y="1" width="30" height="30" rx="9" fill="var(--color-primary)" />
+              <path
+                d="M22.4 12.2a6.5 6.5 0 1 0 1.7 6.6h-5.6"
+                fill="none"
+                stroke="#ffffff"
+                stroke-width="2.8"
+                stroke-linecap="square"
+              />
+              <path d="M24.3 5.1l2.7 2.7-2.7 2.7-2.7-2.7z" fill="var(--color-accent)" />
             </svg>
           </span>
           <div>
-            <strong>LinklDoor</strong>
-            <span class="site-footer__tagline">Conectando pessoas e oportunidades.</span>
+            <strong>Gipper</strong>
+            <span class="site-footer__tagline">Digital Recruitment — conectando pessoas e oportunidades.</span>
           </div>
         </div>
 
@@ -57,14 +64,12 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       .brand-mark {
         display: grid;
         place-items: center;
-        width: 26px;
-        height: 26px;
-        border-radius: 8px;
-        background: var(--color-primary);
-        color: #fff;
       }
 
       .site-footer__brand strong {
+        font-family: var(--font-display);
+        font-weight: 800;
+        letter-spacing: -0.02em;
         color: var(--color-text);
         margin-right: 6px;
       }

@@ -1,36 +1,38 @@
 /* ==========================================================================
-   Recruta — design system (globais)
-   Tudo em CSS puro com custom properties: sem framework de UI, sem fonte
-   externa (funciona offline/preview), tema claro profissional.
+   Gipper — design system (globais)
    ========================================================================== */
 
 :root {
   /* Paleta */
-  --color-bg: #f6f7fb;
+  --color-bg: #f1efe9;
   --color-surface: #ffffff;
-  --color-surface-alt: #f1f3f9;
-  --color-border: #e3e7ef;
-  --color-border-strong: #cdd4e0;
+  --color-surface-alt: #e9e6de;
+  --color-border: #ddd8cc;
+  --color-border-strong: #c2bcab;
 
-  --color-text: #111827;
-  --color-text-muted: #5b6577;
-  --color-text-subtle: #8a94a6;
+  --color-text: #182420;
+  --color-text-muted: #5c6b62;
+  --color-text-subtle: #8a968c;
 
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-primary-soft: #eef2ff;
+  --color-primary: #2f5548;
+  --color-primary-hover: #234136;
+  --color-primary-soft: #e3ebe6;
   --color-primary-contrast: #ffffff;
 
-  --color-success: #0f766e;
-  --color-success-soft: #e6f6f4;
+  --color-accent: #e4573d;
+  --color-accent-soft: #fdeae5;
+  --color-highlight: #f2c14e;
+
+  --color-success: #2f7a55;
+  --color-success-soft: #e5f2ea;
   --color-warning: #b45309;
   --color-warning-soft: #fef3e2;
-  --color-danger: #b91c1c;
-  --color-danger-soft: #fdecec;
-  --color-info: #1d4ed8;
-  --color-info-soft: #e8f0fe;
-  --color-muted: #4b5563;
-  --color-muted-soft: #eef0f4;
+  --color-danger: #b3261e;
+  --color-danger-soft: #fdeceb;
+  --color-info: #0f766e;
+  --color-info-soft: #e2f2f0;
+  --color-muted: #4b554e;
+  --color-muted-soft: #eceae3;
 
   /* Métricas */
   --radius-sm: 6px;
@@ -38,9 +40,9 @@
   --radius-lg: 16px;
   --radius-pill: 999px;
 
-  --shadow-sm: 0 1px 2px rgb(16 24 40 / 6%);
-  --shadow: 0 2px 8px rgb(16 24 40 / 8%);
-  --shadow-lg: 0 18px 40px rgb(16 24 40 / 16%);
+  --shadow-sm: 0 1px 2px rgb(24 36 32 / 6%);
+  --shadow: 0 2px 8px rgb(24 36 32 / 8%);
+  --shadow-lg: 0 18px 40px rgb(24 36 32 / 16%);
 
   --space-1: 4px;
   --space-2: 8px;
@@ -54,7 +56,10 @@
   --container: 1200px;
   --container-narrow: 880px;
 
-  --font-sans: 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans:
+    'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
+  --font-display:
+    'Sora', 'Inter', 'Segoe UI', system-ui, -apple-system, 'Helvetica Neue', Arial, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 }
 
@@ -85,9 +90,11 @@ h2,
 h3,
 h4 {
   margin: 0;
-  line-height: 1.25;
-  font-weight: 650;
-  letter-spacing: -0.01em;
+  line-height: 1.22;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
 }
 
 h1 {
@@ -285,6 +292,7 @@ kbd {
    -------------------------------------------------------------------------- */
 
 .btn {
+  font-family: var(--font-sans);
   --btn-bg: var(--color-surface);
   --btn-fg: var(--color-text);
   --btn-border: var(--color-border-strong);
@@ -1062,6 +1070,7 @@ kbd {
 
 .metric__value {
   font-size: 1.75rem;
+  font-family: var(--font-display);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
