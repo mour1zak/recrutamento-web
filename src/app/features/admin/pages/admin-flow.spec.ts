@@ -532,6 +532,7 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
 
       expect(textOf(host)).toContain('Tech Solutions Ltda');
       expect(textOf(host)).toContain('Avenida Paulista — São Paulo — SP · CEP 01310-100');
+      expect(textOf(host)).toContain('12.345.678/0001-90'); // CNPJ mascarado, não cru
 
       clickButton(host, 'Desativar');
       await settle();

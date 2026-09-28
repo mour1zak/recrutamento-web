@@ -1,8 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { catchError, of, take } from 'rxjs';
 import { ApiError } from '../../../core/api-error';
-import { formatDate } from '../../../core/format';
+import { formatDate, maskCnpj } from '../../../core/format';
 import type { Company } from '../../../core/models';
 import { CompanyDirectoryService } from '../../../core/services/company-directory.service';
 import { CompaniesService } from '../../../core/services/companies.service';
@@ -11,6 +11,7 @@ import { AlertComponent } from '../../../shared/ui/alert';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state';
 import { LoadingComponent } from '../../../shared/ui/loading';
+import { PaginationComponent } from '../../../shared/ui/pagination';
 
 /**
  * Gestão de empresas (ADMIN).
@@ -23,7 +24,14 @@ import { LoadingComponent } from '../../../shared/ui/loading';
 @Component({
   selector: 'app-companies-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, AlertComponent, ConfirmDialogComponent, EmptyStateComponent, LoadingComponent],
+  imports: [
+    RouterLink,
+    AlertComponent,
+    ConfirmDialogComponent,
+    EmptyStateComponent,
+    LoadingComponent,
+    PaginationComponent,
+  ],
   template: `
     <div class="page-header">
       <div class="page-header__titles">
@@ -59,7 +67,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
             </tr>
           </thead>
           <tbody>
-            @for (company of companies(); track company.id) {
+            @for (company of visibleCompanies(); track company.id) {
               <tr>
                 <td class="cell-sub">{{ company.id }}</td>
                 <td>
@@ -68,7 +76,7 @@ import { LoadingComponent } from '../../../shared/ui/loading';
                     <div class="cell-sub truncate">{{ company.description }}</div>
                   }
                 </td>
-                <td class="nowrap">{{ company.cnpj ?? '—' }}</td>
+                <td class="nowrap">{{ cnpj(company.cnpj) }}</td>
                 <td>{{ address(company) }}</td>
                 <td>
                   @if (company.isActive) {
@@ -104,6 +112,13 @@ import { LoadingComponent } from '../../../shared/ui/loading';
         </table>
       </div>
 
+      <app-pagination
+        [page]="page()"
+        [limit]="pageSize"
+        [total]="companies().length"
+        label="empresas"
+        (pageChange)="page.set($event)"
+      />
     } @else if (!error()) {
       <app-empty-state
         icon="building"
@@ -142,6 +157,19 @@ export class CompaniesPageComponent {
   protected readonly error = signal<string | null>(null);
   protected readonly confirmTarget = signal<Company | null>(null);
   protected readonly busyId = signal<number | null>(null);
+
+  /**
+   * Paginação no CLIENTE: o backend não tem rota de lista de empresas (a
+   * tabela nasce da varredura de ids), então não há paginação de servidor
+   * para consumir — fatiar aqui é o comportamento honesto possível.
+   */
+  protected readonly pageSize = 10;
+  protected readonly page = signal(1);
+  protected readonly visibleCompanies = computed(() => {
+    const all = this.companies();
+    const start = (this.page() - 1) * this.pageSize;
+    return all.slice(start, start + this.pageSize);
+  });
 
   constructor() {
     this.load();
@@ -210,5 +238,9 @@ export class CompaniesPageComponent {
 
   protected date(iso: string): string {
     return formatDate(iso);
+  }
+
+  protected cnpj(value: string | null): string {
+    return value ? maskCnpj(value) : '—';
   }
 }
