@@ -3,29 +3,19 @@ import { Observable, catchError, forkJoin, map, of, switchMap, tap } from 'rxjs'
 import { ApiClient } from '../http/api-client';
 import type { Company, Paginated, UserSummary } from '../models';
 
-/** Quantos 404s consecutivos encerram a varredura de ids de empresa. */
-const PROBE_STOP_AFTER = 8;
-/** Janela de ids investigada acima do maior id já conhecido. */
-const PROBE_WINDOW = 12;
-/** Tamanho do lote paralelo de consulta durante a varredura. */
-const PROBE_BATCH = 8;
-
 /**
  * Cache de nomes de empresa + descoberta de empresas.
  *
  * O backend não expõe `GET /companies` (lista) — apenas `GET /companies/:id`.
- * Duas estratégias complementares, ambas só com rotas que existem:
+ * A lista exibida é portanto a que o backend PERMITE descobrir: empresas com
+ * vagas (`GET /jobs/mine`, que para o ADMIN traz todas as empresas) ou com
+ * recrutadores vinculados (`GET /users`). Não há varredura de ids nem
+ * paginação de cliente: o front apresenta exatamente o contrato que existe,
+ * e a regra fica escrita na tela em linguagem de produto.
  *
- * - `discoverCompanies()` (barata): ids que aparecem em `GET /jobs/mine`
- *   (ADMIN vê todas as vagas) e `GET /users` (`companyId` dos recrutadores);
- * - `discoverAllCompanies()` (completa, telas de gestão): além desses ids,
- *   varre a faixa `1..maiorId+12` consultando por id, em lotes paralelos, e
- *   para após 8 404s consecutivos. É assim que uma empresa recém-criada —
- *   que ainda não tem vagas nem recrutadores — aparece na lista depois de
- *   um reload (o registro em sessão cobre o intervalo entre criar e recarregar).
- *
- * Empresas criadas nesta sessão ficam registradas (`register`) e entram em
- * qualquer uma das duas descobertas sem depender do backend.
+ * Empresas criadas nesta sessão ficam registradas (`register`) a partir da
+ * resposta real do `POST /companies`, para aparecerem nos seletores até que
+ * ganhem vagas/usuários que as tornem descobríveis.
  */
 @Injectable({ providedIn: 'root' })
 export class CompanyDirectoryService {
@@ -115,57 +105,6 @@ export class CompanyDirectoryService {
               [...registered, ...companies.filter((company): company is Company => company !== null)],
           ),
         );
-      }),
-      tap((companies) => this.warmCache(companies)),
-    );
-  }
-
-  /**
-   * Descoberta completa para telas de gestão (ADMIN): descoberta barata +
-   * varredura de faixa de ids até 8 404s consecutivos, em lotes de 8.
-   */
-  discoverAllCompanies(): Observable<Company[]> {
-    return this.discoverCompanies().pipe(
-      switchMap((seeded) => {
-        const known = new Map<number, Company>();
-        [...this.registered(), ...seeded].forEach((company) => known.set(company.id, company));
-
-        const maxSeed = seeded.length ? Math.max(...seeded.map((company) => company.id)) : 0;
-        const ceiling = maxSeed + PROBE_WINDOW;
-        const candidates: number[] = [];
-        for (let id = 1; id <= ceiling; id += 1) {
-          if (!known.has(id)) candidates.push(id);
-        }
-
-        const probe = (index: number, consecutive: number): Observable<Map<number, Company>> => {
-          if (index >= candidates.length || consecutive >= PROBE_STOP_AFTER) {
-            return of(known);
-          }
-          const chunk = candidates.slice(index, index + PROBE_BATCH);
-          return forkJoin(
-            chunk.map((id) =>
-              this.api.get<Company>(`companies/${id}`).pipe(
-                map((company) => ({ company: company as Company | null })),
-                catchError(() => of({ company: null })),
-              ),
-            ),
-          ).pipe(
-            switchMap((results) => {
-              let nextConsecutive = consecutive;
-              results.forEach(({ company }) => {
-                if (company) {
-                  known.set(company.id, company);
-                  nextConsecutive = 0;
-                } else {
-                  nextConsecutive += 1;
-                }
-              });
-              return probe(index + chunk.length, nextConsecutive);
-            }),
-          );
-        };
-
-        return probe(0, 0).pipe(map((mapById) => [...mapById.values()].sort((a, b) => a.id - b.id)));
       }),
       tap((companies) => this.warmCache(companies)),
     );

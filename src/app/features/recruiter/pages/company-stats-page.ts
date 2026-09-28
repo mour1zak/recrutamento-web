@@ -212,7 +212,7 @@ export class CompanyStatsPageComponent {
 
     if (this.permissions.isAdmin()) {
       this.directory
-        .discoverAllCompanies()
+        .discoverCompanies()
         .pipe(
           take(1),
           catchError(() => of<Company[]>([])),
@@ -233,7 +233,7 @@ export class CompanyStatsPageComponent {
     if (this.companyId()) return of(this.companyId());
 
     if (this.permissions.isAdmin()) {
-      return this.directory.discoverAllCompanies().pipe(
+      return this.directory.discoverCompanies().pipe(
         take(1),
         catchError(() => of<Company[]>([])),
         switchMap((companies) => {

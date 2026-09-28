@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { catchError, of, take } from 'rxjs';
 import { ApiError } from '../../../core/api-error';
@@ -11,7 +11,6 @@ import { AlertComponent } from '../../../shared/ui/alert';
 import { ConfirmDialogComponent } from '../../../shared/ui/confirm-dialog';
 import { EmptyStateComponent } from '../../../shared/ui/empty-state';
 import { LoadingComponent } from '../../../shared/ui/loading';
-import { PaginationComponent } from '../../../shared/ui/pagination';
 
 /**
  * Gestão de empresas (ADMIN).
@@ -24,20 +23,14 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
 @Component({
   selector: 'app-companies-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [
-    RouterLink,
-    AlertComponent,
-    ConfirmDialogComponent,
-    EmptyStateComponent,
-    LoadingComponent,
-    PaginationComponent,
-  ],
+  imports: [RouterLink, AlertComponent, ConfirmDialogComponent, EmptyStateComponent, LoadingComponent],
   template: `
     <div class="page-header">
       <div class="page-header__titles">
         <h1>Empresas</h1>
         <p class="page-header__subtitle mb-0">
-          Cadastro de empresas com endereço resolvido por CEP (integração ViaCEP feita pelo backend).
+          Cadastro de empresas com endereço resolvido por CEP. A lista mostra as empresas que a plataforma conhece
+          hoje: as que têm vagas publicadas ou recrutadores vinculados.
         </p>
       </div>
       <div class="page-header__actions">
@@ -67,7 +60,7 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
             </tr>
           </thead>
           <tbody>
-            @for (company of visibleCompanies(); track company.id) {
+            @for (company of companies(); track company.id) {
               <tr>
                 <td class="cell-sub">{{ company.id }}</td>
                 <td>
@@ -112,13 +105,6 @@ import { PaginationComponent } from '../../../shared/ui/pagination';
         </table>
       </div>
 
-      <app-pagination
-        [page]="page()"
-        [limit]="pageSize"
-        [total]="companies().length"
-        label="empresas"
-        (pageChange)="page.set($event)"
-      />
     } @else if (!error()) {
       <app-empty-state
         icon="building"
@@ -158,19 +144,6 @@ export class CompaniesPageComponent {
   protected readonly confirmTarget = signal<Company | null>(null);
   protected readonly busyId = signal<number | null>(null);
 
-  /**
-   * Paginação no CLIENTE: o backend não tem rota de lista de empresas (a
-   * tabela nasce da varredura de ids), então não há paginação de servidor
-   * para consumir — fatiar aqui é o comportamento honesto possível.
-   */
-  protected readonly pageSize = 10;
-  protected readonly page = signal(1);
-  protected readonly visibleCompanies = computed(() => {
-    const all = this.companies();
-    const start = (this.page() - 1) * this.pageSize;
-    return all.slice(start, start + this.pageSize);
-  });
-
   constructor() {
     this.load();
   }
@@ -179,7 +152,7 @@ export class CompaniesPageComponent {
     this.loading.set(true);
     this.error.set(null);
     this.directory
-      .discoverAllCompanies()
+      .discoverCompanies()
       .pipe(take(1))
       .subscribe({
         next: (companies) => {

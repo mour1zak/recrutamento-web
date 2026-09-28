@@ -89,23 +89,6 @@ function clickModalConfirm(fixture: { nativeElement: HTMLElement }, label: strin
   clickButton(fixture, label, '.modal__footer');
 }
 
-/** Zera a varredura de ids de empresa (404 em lote) até não sobrar pendência. */
-function flushCompanyProbes(controller: HttpTestingController, options: { includeId1?: boolean } = {}): void {
-  for (let round = 0; round < 6; round += 1) {
-    const pending = controller.match((request) => {
-      if (!/\/companies\/\d+$/.test(request.url)) return false;
-      return options.includeId1 ? true : !request.url.endsWith('/companies/1');
-    });
-    if (pending.length === 0) return;
-    pending.forEach((request) =>
-      request.flush(
-        { statusCode: 404, error: 'Not Found', reason: 'company_not_found', message: 'Empresa não encontrada.' },
-        { status: 404, statusText: 'Not Found' },
-      ),
-    );
-  }
-}
-
 /** Responde todas as requisições pendentes de uma URL com o mesmo corpo. */
 type FlushBody = string | number | boolean | object | ArrayBuffer | Blob | null;
 
@@ -527,8 +510,6 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
         updatedAt: '2026-09-01T12:00:00.000Z',
       });
       await settle();
-      flushCompanyProbes(controller);
-      await settle();
 
       expect(textOf(host)).toContain('Tech Solutions Ltda');
       expect(textOf(host)).toContain('Avenida Paulista — São Paulo — SP · CEP 01310-100');
@@ -580,8 +561,6 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
         createdAt: '2026-09-01T12:00:00.000Z',
       });
       await settle();
-      flushCompanyProbes(controller);
-      await settle();
 
       clickButton(host, 'Desativar');
       await settle();
@@ -597,8 +576,6 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
       // Recarga pós-conflito: sem seeds, a varredura de ids inclui o 1.
       flushAll(controller, url('jobs/mine?page=1&limit=100'), { data: [], page: 1, limit: 100, total: 0 });
       flushAll(controller, url('users?page=1&limit=100'), { data: [], page: 1, limit: 100, total: 0 });
-      await settle();
-      flushCompanyProbes(controller, { includeId1: true });
       await settle();
 
       expect(textOf(host)).toContain('Nenhuma empresa encontrada');
@@ -694,8 +671,6 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
       flushAll(controller, url('users?page=1&limit=10'), USERS_PAGE);
       await settle();
       flushAll(controller, url('companies/1'), { id: 1, name: 'Tech Solutions Ltda', isActive: true });
-      await settle();
-      flushCompanyProbes(controller);
       await settle();
       return host;
     }
@@ -878,8 +853,6 @@ describe('Fluxo do admin — empresas com CEP, usuários e permissões', () => {
       request.flush({ ...USERS_PAGE, data: [USERS_PAGE.data[1]], total: 1 });
       await settle();
       flushAll(controller, url('companies/1'), { id: 1, name: 'Tech Solutions Ltda', isActive: true });
-      await settle();
-      flushCompanyProbes(controller);
       await settle();
 
       expect(textOf(host)).toContain('1 usuário(s)');

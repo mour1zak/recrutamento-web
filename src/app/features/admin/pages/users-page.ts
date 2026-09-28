@@ -443,7 +443,7 @@ export class UsersPageComponent {
           return of<Role[]>([]);
         }),
       ),
-      companies: this.directory.discoverAllCompanies().pipe(catchError(() => of<Company[]>([]))),
+      companies: this.directory.discoverCompanies().pipe(catchError(() => of<Company[]>([]))),
     })
       .pipe(take(1))
       .subscribe(({ roles, companies }) => {

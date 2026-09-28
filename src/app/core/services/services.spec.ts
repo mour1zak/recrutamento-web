@@ -277,27 +277,6 @@ describe('Services → contrato HTTP com o backend', () => {
       expect(directory.name(99)).toBe('Empresa Nova Ltda');
     });
 
-    it('descoberta completa varre a faixa de ids e acha empresa sem vagas/usuários', () => {
-      const directory = TestBed.inject(CompanyDirectoryService);
-      const discovered: Company[][] = [];
-      directory.discoverAllCompanies().subscribe((companies) => discovered.push(companies));
-
-      controller.expectOne(url('jobs/mine?page=1&limit=100')).flush({ data: [], page: 1, limit: 100, total: 0 });
-      controller.expectOne(url('users?page=1&limit=100')).flush({ data: [], page: 1, limit: 100, total: 0 });
-
-      // Sem ids conhecidos, varre 1..12 em lotes de 8; a empresa 5 existe.
-      for (const id of [1, 2, 3, 4]) {
-        controller.expectOne(url(`companies/${id}`)).flush(notFound(), { status: 404, statusText: 'Not Found' });
-      }
-      controller.expectOne(url('companies/5')).flush({ id: 5, name: 'Casas Bahia', isActive: true });
-      for (const id of [6, 7, 8, 9, 10, 11, 12]) {
-        controller.expectOne(url(`companies/${id}`)).flush(notFound(), { status: 404, statusText: 'Not Found' });
-      }
-
-      expect(discovered[0]?.map((company) => company.id)).toEqual([5]);
-      expect(directory.name(5)).toBe('Casas Bahia');
-    });
-
     it('desativar/reativar usam PATCH sem corpo e devolvem a empresa atualizada', () => {
       TestBed.inject(CompaniesService).deactivate(3).subscribe();
       const deactivated = controller.expectOne(url('companies/3/deactivate'));
