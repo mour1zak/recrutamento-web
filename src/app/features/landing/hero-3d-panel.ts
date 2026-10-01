@@ -88,6 +88,8 @@ type RoundedBoxCtor = typeof import('three/addons/geometries/RoundedBoxGeometry.
         width: 100%;
         height: 100%;
         min-height: 520px;
+        /* o halo abaixo usa inset negativo; clip evita scrollbar horizontal */
+        overflow: clip;
       }
 
       /* halo decorativo atrás da cena (mesma linguagem do hero) */
@@ -185,8 +187,15 @@ export class Hero3dPanelComponent implements OnDestroy {
   private blob!: Mesh;
   private clock!: Clock;
 
-  /** Sem WebGL / sem chunk do three: mostra o mock estático (nunca vazio). */
-  protected readonly fallback = signal(false);
+  /**
+   * Mock estático visível IMEDIATAMENTE; o 3D é upgrade progressivo.
+   *
+   * Lição do incidente: esperar o three (chunk grande, otimização de deps no
+   * dev-server) antes de pintar deixava a landing em branco/"travada" em
+   * máquina lenta. Agora o first paint nunca depende do 3D: o mock entra na
+   * hora e, se/de quando a cena ficar pronta, trocamos sem buraco no meio.
+   */
+  protected readonly fallback = signal(true);
 
   private rafId = 0;
   private io: IntersectionObserver | null = null;
