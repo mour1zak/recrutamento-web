@@ -26,7 +26,8 @@ fingindo ser conteúdo.
 | Marca | **Gipper — Digital Recruitment** | Lockup com marca própria (SVG inline: "G" branco em bloco verde + losango coral) no header, footer e landing |
 | Forms | `ReactiveFormsModule` | Validar no cliente as mesmas regras dos DTOs do backend |
 | Testes | **Vitest + jsdom** (via `@angular/build:unit-test`) + `HttpTestingController` | 131 testes cobrindo interceptors, guards, contratos HTTP e os 3 fluxos de negócio |
-| Build | `@angular/build:application` | Produz SPA estático; initial **310 kB (87 kB gzip)** |
+| Build | `@angular/build:application` | Produz SPA estático; initial **~320 kB (90 kB gzip)** |
+| 3D do hero | `three` (0.180) via **dynamic import** | Peso entra só no chunk lazy da landing; componente com cleanup total, `prefers-reduced-motion` e fallback sem WebGL |
 
 Requisitos: **Node 20.19+ / 22.12+** e npm. (O backend exige Node 22+; o front
 funciona em Node 20.)
@@ -375,7 +376,25 @@ payload completo × reduzido, `addressWarning`, códigos `reason`).
 
 ---
 
-## 10. Build e publicação
+## 10. Hero 3D (pré-login)
+
+O painel do hero é uma cena `three.js` portada para o componente standalone
+`Hero3dPanelComponent` (`features/landing/hero-3d-panel.ts`), gerada a partir do
+briefing `BRIEFING-HERO-3D.md` (referência original em
+`docs/kimi-hero3d-referencia.js`):
+
+- três camadas em profundidade (dashboard verde, mini-card de candidatura,
+  funil) + sombra de chão, luz coerente vinda do topo esquerdo;
+- tilt pelo ponteiro (±4°), drag com inércia (±24°, hold de 1,1 s) e flutuação
+  contínua lenta; `prefers-reduced-motion` renderiza um frame estático;
+- `three` entra por **dynamic import** (chunk lazy da landing — o initial não
+  muda) e as cores são lidas dos tokens CSS (`--color-*`), sem hardcoded;
+- cleanup completo no `ngOnDestroy` (listeners, rAF, ResizeObserver,
+  geometrias/materiais/texturas/renderer) e pausa com aba oculta;
+- sem WebGL ou sem `three` (testes em jsdom, bots): o painel degrada para o
+  halo decorativo — a landing segue inteira.
+
+## 11. Build e publicação
 
 ```bash
 npm run build      # dist/recrutamento-web/browser  (initial 310 kB / 87 kB gzip)
@@ -403,7 +422,7 @@ assets hashados saem com o MIME correto.
 
 ---
 
-## 11. O que ficou para a próxima versão
+## 12. O que ficou para a próxima versão
 
 Priorizado como "camada final" no briefing — nada aqui bloqueia o fluxo real:
 
