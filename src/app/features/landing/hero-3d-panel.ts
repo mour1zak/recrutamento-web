@@ -6,6 +6,7 @@ import {
   ViewChild,
   afterNextRender,
   inject,
+  signal,
 } from '@angular/core';
 import type {
   WebGLRenderer,
@@ -38,9 +39,11 @@ type RoundedBoxCtor = typeof import('three/addons/geometries/RoundedBoxGeometry.
  *   landing é visitada e abandonada sem reload;
  * - **`prefers-reduced-motion`**: um único render estático, sem loop/tilt;
  * - **aba oculta pausa** (`visibilitychange`): nenhum rAF com `document.hidden`;
- * - **fallback sem WebGL/import** (bots, jsdom, GPUs bloqueadas): o painel vira
- *   apenas o halo decorativo — a landing continua inteira e os testes não
- *   quebram;
+ * - **fallback sem WebGL/import** (bots, jsdom, GPUs bloqueadas, chunk ausente):
+ *   o painel vira o mock estático anterior dentro do mesmo hero — a landing
+ *   nunca mostra um buraco vazio e os testes não quebram;
+ * - **custo sob controle**: DPR limitado a 1.75 e loop de render ativo apenas
+ *   enquanto o painel está na viewport (IntersectionObserver) e a aba visível;
  * - decorativo: `aria-hidden="true"` no host do canvas.
  *
  * A cena usa SÓ os tokens de cor do design system (lidos via
@@ -50,7 +53,29 @@ type RoundedBoxCtor = typeof import('three/addons/geometries/RoundedBoxGeometry.
 @Component({
   selector: 'app-hero-3d-panel',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `<div class="hero3d" #host aria-hidden="true"></div>`,
+  template: `
+    <div class="hero3d" #host aria-hidden="true">
+      @if (fallback()) {
+        <!--
+          Degradação honesta: sem WebGL (ou sem o chunk do three), o hero
+          mostra o mock estático anterior — nunca um buraco vazio.
+        -->
+        <div class="mock">
+          <div class="mock__bar"><span></span><span></span><span></span></div>
+          <div class="mock__row mock__row--title"></div>
+          <div class="mock__row"></div>
+          <div class="mock__row mock__row--short"></div>
+          <div class="mock__chips">
+            <span class="chip">Em análise</span>
+            <span class="chip chip--ok">Entrevista</span>
+            <span class="chip chip--ok">Contratado</span>
+          </div>
+          <div class="mock__row"></div>
+          <div class="mock__row mock__row--short"></div>
+        </div>
+      }
+    </div>
+  `,
   styles: [
     `
       :host {
@@ -82,6 +107,64 @@ type RoundedBoxCtor = typeof import('three/addons/geometries/RoundedBoxGeometry.
         height: 100%;
         touch-action: pan-y;
       }
+
+      .mock {
+        width: 100%;
+        max-width: 380px;
+        background: var(--color-primary);
+        border: 1px solid var(--color-primary-hover);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        padding: var(--space-5);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        position: relative;
+        z-index: 1;
+      }
+
+      .mock__bar {
+        display: flex;
+        gap: 6px;
+      }
+
+      .mock__bar span {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgb(255 255 255 / 35%);
+      }
+
+      .mock__row {
+        height: 12px;
+        border-radius: var(--radius-pill);
+        background: rgb(255 255 255 / 22%);
+      }
+
+      .mock__row--title {
+        height: 18px;
+        width: 70%;
+        background: rgb(255 255 255 / 38%);
+      }
+
+      .mock__row--short {
+        width: 45%;
+      }
+
+      .mock__chips {
+        display: flex;
+        gap: var(--space-2);
+      }
+
+      .mock .chip {
+        background: rgb(255 255 255 / 16%);
+        color: #fff;
+      }
+
+      .mock .chip--ok {
+        background: var(--color-highlight);
+        color: #182420;
+      }
     `,
   ],
 })
@@ -102,7 +185,12 @@ export class Hero3dPanelComponent implements OnDestroy {
   private blob!: Mesh;
   private clock!: Clock;
 
+  /** Sem WebGL / sem chunk do three: mostra o mock estático (nunca vazio). */
+  protected readonly fallback = signal(false);
+
   private rafId = 0;
+  private io: IntersectionObserver | null = null;
+  private inViewport = true;
   private ro: ResizeObserver | null = null;
   private mq!: MediaQueryList;
   private reduceMotion = false;
@@ -137,8 +225,22 @@ export class Hero3dPanelComponent implements OnDestroy {
   // Boot: dynamic import + cena (falha silenciosa viram halo decorativo)
   // -------------------------------------------------------------------------
 
+  /** Probe barato: se o browser não tem WebGL, nem baixamos o chunk do three. */
+  private webglAvailable(): boolean {
+    try {
+      const canvas = document.createElement('canvas');
+      return !!(canvas.getContext('webgl2') ?? canvas.getContext('webgl'));
+    } catch {
+      return false;
+    }
+  }
+
   private async boot(): Promise<void> {
     if (this.disposed) return;
+    if (!this.webglAvailable()) {
+      this.fallback.set(true);
+      return;
+    }
     try {
       const [three, addons] = await Promise.all([
         import('three'),
@@ -318,8 +420,15 @@ export class Hero3dPanelComponent implements OnDestroy {
     });
 
     // ---- renderer/cena ----
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    const renderer = new THREE.WebGLRenderer({
+      antialias: true,
+      alpha: true,
+      powerPreference: 'high-performance',
+    });
+    // DPR limitado: telas 2x/3x não precisam de mais pixels para ganhar
+    // qualidade perceptível, e o custo de fill-rate é o que derruba GPUs
+    // integradas (a sensação de "site lento").
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
     this.container.appendChild(renderer.domElement);
     this.renderer = renderer;
 
@@ -388,6 +497,19 @@ export class Hero3dPanelComponent implements OnDestroy {
     if (typeof ResizeObserver !== 'undefined') {
       this.ro = new ResizeObserver(() => this.resize());
       this.ro.observe(this.container);
+    }
+    // Loop só enquanto o painel está na viewport: rolar a página não deixa a
+    // GPU trabalhando à toa.
+    if (typeof IntersectionObserver !== 'undefined') {
+      this.io = new IntersectionObserver(
+        (entries) => {
+          this.inViewport = entries[0]?.isIntersecting ?? true;
+          if (this.inViewport) this.startLoop();
+          else cancelAnimationFrame(this.rafId);
+        },
+        { threshold: 0.05 },
+      );
+      this.io.observe(this.container);
     }
     this.resize();
 
@@ -481,7 +603,7 @@ export class Hero3dPanelComponent implements OnDestroy {
 
   private startLoop(): void {
     cancelAnimationFrame(this.rafId);
-    if (!this.renderer) return;
+    if (!this.renderer || !this.inViewport) return;
     if (this.reduceMotion) {
       this.rig.rotation.set(0, 0, 0);
       this.renderer.render(this.scene, this.camera);
@@ -492,6 +614,7 @@ export class Hero3dPanelComponent implements OnDestroy {
   }
 
   private readonly frame = (): void => {
+    if (!this.inViewport || document.hidden) return;
     const THREE = this.THREE;
     const t = this.clock.getElapsedTime();
     const s = this.state;
@@ -542,6 +665,7 @@ export class Hero3dPanelComponent implements OnDestroy {
     this.disposed = true;
     cancelAnimationFrame(this.rafId);
     this.ro?.disconnect();
+    this.io?.disconnect();
     this.mq?.removeEventListener('change', this.onMotionPrefChange);
     document.removeEventListener('visibilitychange', this.onVisibility);
     if (this.container) {

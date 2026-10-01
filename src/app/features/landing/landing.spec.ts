@@ -49,6 +49,8 @@ describe('Landing + gate de conteúdo', () => {
     expect(text).toContain('Criar conta gratuita');
     expect(text).toContain('Já tenho conta');
     expect(text).toContain('entre ou crie a');
+    // sem WebGL (jsdom), o painel degrada para o mock estático — nunca vazio
+    expect(text).toContain('Contratado');
     // Nada de dado inventado: a landing não exibe números/statísticas.
     expect(text).not.toMatch(/\d\.\d{3}\s*candidat/i);
   });
