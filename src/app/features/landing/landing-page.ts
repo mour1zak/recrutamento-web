@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { IconComponent } from '../../shared/ui/icon';
-import { Hero3dPanelComponent } from './hero-3d-panel';
 
 /**
  * Porta de entrada do produto (equivalente ao `index.htm` do Glassdoor).
@@ -15,7 +14,7 @@ import { Hero3dPanelComponent } from './hero-3d-panel';
 @Component({
   selector: 'app-landing-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, IconComponent, Hero3dPanelComponent],
+  imports: [RouterLink, IconComponent],
   template: `
     <section class="hero">
       <div class="container hero__inner">
@@ -44,8 +43,22 @@ import { Hero3dPanelComponent } from './hero-3d-panel';
           </p>
         </div>
 
-        <div class="hero__panel">
-          <app-hero-3d-panel />
+        <div class="hero__panel" aria-hidden="true">
+          <div class="mock">
+            <div class="mock__bar">
+              <span></span><span></span><span></span>
+            </div>
+            <div class="mock__row mock__row--title"></div>
+            <div class="mock__row"></div>
+            <div class="mock__row mock__row--short"></div>
+            <div class="mock__chips">
+              <span class="chip">Em análise</span>
+              <span class="chip chip--ok">Entrevista</span>
+              <span class="chip chip--ok">Contratado</span>
+            </div>
+            <div class="mock__row"></div>
+            <div class="mock__row mock__row--short"></div>
+          </div>
         </div>
       </div>
     </section>
@@ -183,7 +196,62 @@ import { Hero3dPanelComponent } from './hero-3d-panel';
       .hero__panel {
         display: grid;
         place-items: center;
-        min-height: 520px;
+      }
+
+      .mock {
+        width: 100%;
+        max-width: 380px;
+        background: var(--color-primary);
+        border: 1px solid var(--color-primary-hover);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        padding: var(--space-5);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+      }
+
+      .mock__bar {
+        display: flex;
+        gap: 6px;
+      }
+
+      .mock__bar span {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: rgb(255 255 255 / 35%);
+      }
+
+      .mock__row {
+        height: 12px;
+        border-radius: var(--radius-pill);
+        background: rgb(255 255 255 / 22%);
+      }
+
+      .mock__row--title {
+        height: 18px;
+        width: 70%;
+        background: rgb(255 255 255 / 38%);
+      }
+
+      .mock__row--short {
+        width: 45%;
+      }
+
+      .mock__chips {
+        display: flex;
+        gap: var(--space-2);
+      }
+
+      .mock .chip {
+        background: rgb(255 255 255 / 16%);
+        color: #fff;
+      }
+
+      .mock .chip--ok {
+        background: var(--color-highlight);
+        color: #182420;
       }
 
       .section {
